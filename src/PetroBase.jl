@@ -169,13 +169,7 @@ function checkUnique(comps::Array{Component})
     return true
 end
 
-function toVec(comps::Array{Component})
-    compVec = Float32[]
-    for e in comps
-        push!(compVec,e.mol)
-    end
-    return compVec
-end
+
 """
     findComp(comps, fComp)
 Finds the index of fComp in the comps array, where fComp can be either a Component object or the name of a component.
@@ -289,4 +283,6 @@ struct PetroSystem
             Cp_Cv = 0, α = 0, β = 0) = new(compo,phases,mol,vol,mass,ρ,mMass,G,H,S,Cp,Vmol,Cp_Cv,α,β)
 end
 
+export Chemical, Component, TraceElem, Phase, PetroSystem, name, mol, Base.:+, Base.:-, ≃, Base.:*, Base.:/, sumMass, sumMol, checkUnique,
+findComp,gibbs
 end
