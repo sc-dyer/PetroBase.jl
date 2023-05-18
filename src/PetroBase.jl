@@ -69,6 +69,7 @@ struct TraceElem <: Chemical
     concentration::Float64
     
 end
+
 """
 $(SIGNATURES)
 Clones the parameters of a 'TraceElem' but with change of 'concentration'
@@ -78,7 +79,7 @@ TraceElem(clone::TraceElem,conc::Real) = TraceElem(clone.name,clone.mMass,conc)
 """
 $(TYPEDSIGNATURES)
 
-Returns name of a Chemical, useful for broadcasting
+Returns 'name' of a 'chem', useful for broadcasting
 """
 function name(chem::Chemical) 
     return chem.name
@@ -87,7 +88,7 @@ end
 """
 $(TYPEDSIGNATURES)
 
-Returns the 'mol' of a 'Component', useful for broadcasting
+Returns the 'mol' of 'comp', useful for broadcasting
 """
 function conc(comp::Component)
     return comp.mol
@@ -305,92 +306,111 @@ function findComp(chem::Array{Component}, fChem::String)
 end
 
 """
-    Phase(name, compo, mol, vol, mass, ρ,mMass,G,H,S,Cp,Vmol,Cp_Cv,α,β)
-Phase type contains most relevant properties of a phase, any number of variables can be initialized and defaults will be 0 or empty.
-The variable descriptions are as follows:
-name::String = name of the phase
-comp::Array{Component} = Composition of the phase as defined by array of components
-mol::Float64 = Number of moles of the phase present
-vol::Float64 = volume of phase present in system (J/bar [m^3/10^5])
-mass::Float64 = mass of phase preset in systen (g)
-ρ::Float64 = Density (kg/m^3)
-mMass::Float64 = molar mass (g/mol)
-G::Float64 = Gibbs free energy (J/mol)
-H::Float64 = Enthalpy (J/mol)
-S::Float64 = Entropy (J/K·mol)
-Cp::Float64 = Heat capacity (J/K·mol)
-Vmol::Float64 = molar volume (J/bar·mol)
-Cp_Cv::Float64 = Cp/Cv or heat capacity ratio
-α::Float64 = Thermal expansion coeficiient (1/K)
-β::Float64 = Compressibility (1/bar)
+$(SIGNATURES)
+This type is defined to contain all the most relevant properties of a phase, any number of variables can be initialized and defaults will be 0
+or empty arrays/strings. Units are selected based on convenience for petrological modelling.
+$(TYPEDFIELDS)
 """
 struct Phase
+    "Name of the phase"
     name::String
+    "Composition of the phase as defined by a 'Component' array"
     compo::Array{Component}
+    "Concentration of trace elements in the phase"
+    traceElems::Array{TraceElem}#In general I anticipate it is more useful to have TEs and Components seperate
+    "Number of moles of the phase present in the system"
     mol::Float64
+    "Volume of phase present in the system (J/bar [m^3/10^5])"
     vol::Float64 #In J/bar
+    "Total mass of the phase present in the system (g)"
     mass::Float64 #In g
+    "Density (kg/m^3)"
     ρ::Float64 #Density in kg/m^3
+    "Molar mass (g/mol)"
     mMass::Float64
     #Thermo properties
+    "Gibbs free energy (J/mol)"
     G::Float64 #J/mol
+    "Enthalpy (J/mol)"
     H::Float64 #J/mol
+    "Entropy (J/mol)"
     S::Float64 #In J/Kmol
+    "Heat capacity (J/K·mol)"
     Cp::Float64 #In J/Kmol
+    "Molar volume (J/bar·mol)"
     Vmol::Float64 #InJ/barmol
+    "Cp/Cv (heat capacity ratio)"
     Cp_Cv::Float64 #Cp/Cv = heat capacity ratio
+    "Thermal expansion coefficient(1/K)"
     α::Float64 #Thermal expansion coeficiient in 1/K
+    "Compressibility (1/bar)"
     β::Float64 #Compressibility in 1/bar
-    Phase(;name = "none", compo = Array{Component}([]),mol = 0, vol = 0, 
+    Phase(;name = "none", compo = Array{Component}([]),traceElems = Array{TraceElem}([]),mol = 0, vol = 0, 
             mass = 0, ρ = 0, mMass = 0, G = 0, H = 0, S = 0, Cp = 0, Vmol = 0, 
             Cp_Cv = 0, α = 0, β = 0) = new(name,compo,mol,vol,mass,ρ,mMass,G,H,S,Cp,Vmol,Cp_Cv,α,β)
 end
 
+
+"""
+$(TYPEDSIGNATURES)
+
+Returns 'g' of 'phase', useful for broadcasting
+"""
 function gibbs(phase::Phase)
     return phase.G
 end
 
+
+"""
+$(TYPEDSIGNATURES)
+
+Returns the 'mol' of 'phase', useful for broadcasting
+"""
 function mol(phase::Phase)
     return phase.mol
 end
+
 """
-    PetroSystem(name, compo, mol, vol, mass, ρ,mMass,G,H,S,Cp,Vmol,Cp_Cv,α,β)
-PetroSystem type contains most relevant properties of a metamorphic system, any number of variables can be initialized and defaults will be 0 or empty.
-The variable descriptions are as follows:
-comp::Array{Component} = Composition of the system as defined by array of components
-phases::Array{Phase} = Phases in the system
-mol::Float64 = Number of moles of the phase present
-vol::Float64 = volume of phase present in system (J/bar [m^3/10^5])
-mass::Float64 = mass of phase preset in systen (g)
-ρ::Float64 = Density (kg/m^3)
-mMass::Float64 = molar mass (g/mol)
-G::Float64 = Gibbs free energy (J/mol)
-H::Float64 = Enthalpy (J/mol)
-S::Float64 = Entropy (J/K·mol)
-Cp::Float64 = Heat capacity (J/K·mol)
-Vmol::Float64 = molar volume (J/bar·mol)
-Cp_Cv::Float64 = Cp/Cv or heat capacity ratio
-α::Float64 = Thermal expansion coeficiient (1/K)
-β::Float64 = Compressibility (1/bar)
+$(SIGNATURES)
+This type is defined to contain all the most relevant properties of a petrological system, any number of variables can be initialized 
+and defaults will be 0 or empty arrays/strings. Units are selected based on convenience for petrological modelling.
+$(TYPEDFIELDS)
 """
-struct PetroSystem
+struct PetroSystem #A lot of these I can probably remove
+    "Composition of the system as defined by a 'Component' array"    
     compo::Array{Component}
+    "Phases within the system"
     phases::Array{Phase}
+    "Concentration of trace elements in the system"
+    traceElems::Array{TraceElem}
+    "Total moles of all components in the system"#Is this actually useful?
     mol::Float64
+    "Total volume of all phases in the system(J/bar [m^3/10^5])"
     vol::Float64 #In J/bar
+    "Total mass of the system(g)"
     mass::Float64 #In g
+    "Density of the system (kg/m^3)"
     ρ::Float64 #Density in kg/m^3
+    "Molar mass of the system (kg/m^3)"
     mMass::Float64
     #Thermo properties
+    "Gibbs free energy (J/mol)"
     G::Float64 #J/mol
+    "Enthalpy (J/mol)"
     H::Float64 #J/mol
+    "Entropy (J/K·mol)"
     S::Float64 #In J/Kmol
+    "Heat capacity (J/K·mol)"
     Cp::Float64 #In J/Kmol
+    "Molar volume (J/bar·mol)"
     Vmol::Float64 #InJ/barmol
+    "Cp/Cv (heat capacity ratio)"
     Cp_Cv::Float64 #Cp/Cv = heat capacity ratio
+    "Thermal expansion coefficient(1/K)"
     α::Float64 #Thermal expansion coeficiient in 1/K
+    "Compressibility (1/bar)"
     β::Float64 #Compressibility in 1/bar
-    PetroSystem(;compo = Array{Component}([]),phases = Array{Phase}([]), mol = 0, vol = 0, 
+    PetroSystem(;compo = Array{Component}([]),phases = Array{Phase}([]), traceElems = Array{TraceElem}([]),mol = 0, vol = 0, 
             mass = 0, ρ = 0, mMass = 0, G = 0, H = 0, S = 0, Cp = 0, Vmol = 0, 
             Cp_Cv = 0, α = 0, β = 0) = new(compo,phases,mol,vol,mass,ρ,mMass,G,H,S,Cp,Vmol,Cp_Cv,α,β)
 end
