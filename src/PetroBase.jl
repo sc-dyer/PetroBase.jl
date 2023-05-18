@@ -1,7 +1,31 @@
+"""
+Main module for PetroBase, provides basic types and functions to solve petrological problems.
+
+# Exports
+$(EXPORTS)
+"""
 module PetroBase
 
+export 
+    Chemical, 
+    Component, 
+    TraceElem, 
+    Phase, 
+    PetroSystem, 
+    name, 
+    mol, 
+    sumMass, 
+    sumMol, 
+    checkUnique,
+    findComp,
+    gibbs
 # Write your package code here.
+
+"""
+Abstract supertype for chemical components and trace elements
+"""
 abstract type Chemical end
+
 """
     Component(name, mMass, mol, μ)
     
@@ -41,7 +65,7 @@ Component(clone::Component;mol::Real=clone.mol,μ::Real=clone.μ) = Component(cl
     mol(val)
 Simple functions for broadcasting on Component arrays
 """
-function name(val::Component) 
+function name(val::Chemical) 
     return val.name
 end
 
@@ -54,7 +78,7 @@ end
 
 This is a simple boolean operator that returns true if the two components are identical except for the moles.
 """
-function ≃(comp1::Component, comp2::Component)
+function ≃(comp1::Chemical, comp2::Chemical)
     if comp1.name == comp2.name && comp1.mMass ≈ comp2.mMass
         return true
     end
@@ -283,6 +307,5 @@ struct PetroSystem
             Cp_Cv = 0, α = 0, β = 0) = new(compo,phases,mol,vol,mass,ρ,mMass,G,H,S,Cp,Vmol,Cp_Cv,α,β)
 end
 
-export Chemical, Component, TraceElem, Phase, PetroSystem, name, mol, Base.:+, Base.:-, ≃, Base.:*, Base.:/, sumMass, sumMol, checkUnique,
-findComp,gibbs
+
 end
