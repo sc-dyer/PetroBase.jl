@@ -2,7 +2,6 @@
 Main module for PetroBase, provides basic types and functions to solve petrological problems.
 
 # Exports
-
 $(EXPORTS)
 """
 module PetroBase
@@ -31,61 +30,88 @@ Abstract supertype for chemical components and trace elements
 abstract type Chemical end
 
 """
-    Component(name, mMass, mol, μ)
-    
+$(SIGNATURES)
+Basic unit in describing composition of a phase or system. Critical to most calculations. 
+Typically the only values that will ever changed are mol and chemical potential.
 
-Basic unit in describing composition in all phases. Critical to most calculations. 
-A component has a name, molar mass, an amount (in mol), and a chemical potential
-typically the only values that will ever changed are mol and chemical potential.
-
+$(TYPEDFIELDS)
 """
 struct Component <: Chemical
+    "Name of the component"
     name::String
+    "Molar mass (g/mol)"
     mMass::Float64 #short for Molar Mass
+    "Moles of the component"
     mol::Float64
+    "Chemical potential (J/mol)"
     μ::Float64 #Chemical potential in J/mol
 end
-
-struct TraceElem <: Chemical
-    name::String
-    mMass::Float64
-    concentration::Float64
-end
-
-
-
 #Simple method for being able to copy all values and change the moles
 """
-    Component(clone, mol)
-    Component(clone;mol,μ)
-
-Additional constructor for Component that allows copying of all parameters while changing the moles or chemical potential
+$(SIGNATURES)
+Clones the parameters of a 'Component' but with change of 'mol' and/or 'μ'
 """
-Component(clone::Component, mol::Real) = Component(clone.name, clone.mMass, mol, clone.μ) 
-Component(clone::Component;mol::Real=clone.mol,μ::Real=clone.μ) = Component(clone.name, clone.mMass,mol,μ)
+Component(clone::Component, mol::Real = clone.mol;μ::Real=clone.μ) = Component(clone.name, clone.mMass, mol, μ)
+
 
 """
-    name(val)
-    mol(val)
-Simple functions for broadcasting on Component arrays
+$(SIGNATURES)
+Describes the trace element concentration of a phase or system. Typically the only value that will change is concentration
+
+$(TYPEDFIELDS)
 """
-function name(val::Chemical) 
-    return val.name
+struct TraceElem <: Chemical
+    "Name of the element"
+    name::String
+    "Molar mass (g/mol)"
+    mMass::Float64
+    "Concentration in the system or phase (µg/g)"
+    concentration::Float64
+    
+end
+"""
+$(SIGNATURES)
+Clones the parameters of a 'TraceElem' but with change of 'concentration'
+"""
+TraceElem(clone::TraceElem,conc::Real) = TraceElem(clone.name,clone.mMass,conc)
+
+"""
+$(TYPEDSIGNATURES)
+
+Returns name of a Chemical, useful for broadcasting
+"""
+function name(chem::Chemical) 
+    return chem.name
 end
 
-function mol(val::Component)
-    return val.mol
+"""
+$(TYPEDSIGNATURES)
+
+Returns the 'mol' of a 'Component', useful for broadcasting
+"""
+function conc(comp::Component)
+    return comp.mol
+end
+
+"""
+$(TYPEDSIGNATURES)
+
+Returns the 'concentration' of a 'TraceElem', useful for broadcasting
+"""
+function conc(te::TraceElem)
+    return te.concentration
 end
 #An operator defined to compare if two components are the same except for the amount of moles
 """
-    ≃(comp1, comp2)
+$(TYPEDSIGNATURES)
 
-This is a simple boolean operator that returns true if the two components are identical except for the moles.
+This is a simple boolean operator that returns true if two 'Chemical' variables have the same name and molar mass
 """
 function ≃(comp1::Chemical, comp2::Chemical)
     if comp1.name == comp2.name && comp1.mMass ≈ comp2.mMass
         return true
     end
+    
     return false
 end
 
@@ -93,36 +119,55 @@ end
 #currently have it return an array if components arent compatible but it might make more sense
 #to just throw an error
 """
-    +(comp1, comp2)
+$(TYPEDSIGNATURES)
     
-When two components are added together, they will add their moles to each other if Component1 ≃ Component2.
-Otherwise, it will throw an exception.
+Adds together the 'mol' parameter of two 'Component' variables that have the same name and molar mass
 """
 function Base.:+(comp1::Component, comp2::Component)
     if comp1 ≃ comp2
         return Component(comp1,comp1.mol + comp2.mol)
     else
-        throw(ArgumentError("Component objects must match in all parameters except moles"))
+        throw(ArgumentError("comp1 and comp2 must have the same name and molar mass"))
     end
 end
 
 """
-    +(comp1, num)
-    +(num, comp1)
-
-Adds a real number to the moles in the Component
+$(TYPEDSIGNATURES)
+    
+Adds 'num' to the 'mol' of 'comp1'
 """
 function Base.:+(comp1::Component, num::Real)
     return Component(comp1, comp1.mol+num)
 end
 
 Base.:+(num::Real, comp1::Component) = Base.:+(comp1,num)
-    
+
 """
-    -(comp1, comp2)
+$(TYPEDSIGNATURES)
     
-When one component is subtracted from another, it will subtract the moles of Component2 from Component1 if Component1 ≃ Component2.
-Otherwise, it will throw an exception.
+Adds together the 'concentration' parameter of two 'TraceElem' variables that have the same name and molar mass
+"""
+function Base.:+(te1::TraceElem,te2::TraceElem)
+    if te1 ≃ te2
+        return TraceElem(te1,te1.concentration + ste2.concentration)
+    else
+        throw(ArgumentError("te1 and te2 must have the same name and molar mass"))
+end
+
+"""
+$(TYPEDSIGNATURES)
+    
+Adds 'num' to the 'concentration' of 'te1'
+"""
+function Base.:+(te1::TraceElem,num::Real)
+    return TraceElem(te1,te1.mol+num)
+end
+
+Base.:+(num::Real,te1::TraceElem) = Base.:+(te1,num)
+"""
+$(TYPEDSIGNATURES)
+
+Subtracts the 'mol' parameter of 'comp2' from 'comp1' as long as they have the same name and molar mass
 """
 function Base.:-(comp1::Component, comp2::Component)
     if comp1 ≃ comp2
