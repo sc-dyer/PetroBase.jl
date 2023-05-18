@@ -2,6 +2,7 @@
 Main module for PetroBase, provides basic types and functions to solve petrological problems.
 
 # Exports
+
 $(EXPORTS)
 """
 module PetroBase
@@ -19,6 +20,9 @@ export
     checkUnique,
     findComp,
     gibbs
+
+using
+    DocStringExtensions
 # Write your package code here.
 
 """
