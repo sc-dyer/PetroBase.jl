@@ -157,13 +157,14 @@ end
 """
 $(TYPEDSIGNATURES)
     
-Adds 'num' to the 'concentration' of 'te1'
+Adds 'num' to the 'concentration' paremeter of 'te1'
 """
 function Base.:+(te1::TraceElem,num::Real)
     return TraceElem(te1,te1.mol+num)
 end
 
 Base.:+(num::Real,te1::TraceElem) = Base.:+(te1,num)
+
 """
 $(TYPEDSIGNATURES)
 
@@ -173,23 +174,45 @@ function Base.:-(comp1::Component, comp2::Component)
     if comp1 ≃ comp2
         return Component(comp1,comp1.mol - comp2.mol)
     else
-        throw(ArgumentError("Component objects must match in all parameters except mol"))
+        throw(ArgumentError("comp1 and comp2 must have the same name and molar mass"))
     end
 end
 
 """
-    -(comp1, num)
+$(TYPEDSIGNATURES)
     
-Subtracts a real number from the moles in the Component
+Subtracts 'num' to the 'mol' parameter of 'comp1'
 """
 function Base.:-(comp1::Component, num::Real)
     return Component(comp1, comp1.mol-num)
 end
 
 """
-    *(comp1, num)
-    *(num, comp1)
-Multiplies the moles of the Component by a Real number
+$(TYPEDSIGNATURES)
+
+Subtracts the 'concentration' parameter of 'te2' from 'te1' as long as they have the same name and molar mass
+"""
+function Base.:-(te1::TraceElem,te2::TraceElem)
+    if te1 ≃ te2
+        return TraceElem(te1,te1.mol - te2.mol)
+    else
+        throw(ArgumentError("te1 and te2 must have the same name and molar mass"))
+    end
+end
+
+"""
+$(TYPEDSIGNATURES)
+    
+Subtracts 'num' to the 'concentration' parameter of 'te1'
+"""
+function Base.:-(te1::TraceElem, num::Real)
+    return TraceElem(te1, te1.mol-num)
+end
+
+"""
+$(TYPEDSIGNATURES)
+
+Multiplies the 'mol' parameter of 'comp1' by 'num'
 """
 function Base.:*(comp1::Component, num::Real)
     return Component(comp1, comp1.mol*num)
@@ -197,18 +220,39 @@ end
 
 Base.:*(num::Real, comp1::Component) = Base.:*(comp1,num)
    
+"""
+$(TYPEDSIGNATURES)
+
+Multiplies the 'concentration' parameter of 'te1' by 'num'
+"""
+function Base.:*(te1::TraceElem, num::Real)
+    return Component(te1, te1.mol*num)
+end
+
+Base.:*(num::Real, te1::TraceElem) = Base.:*(te1,num)
 
 """
-    /(comp1, num)
-    
-Divides the moles of the Component by a Real number
+$(TYPEDSIGNATURES)
+
+Divides the 'mol' parameter of 'comp1' by 'num'
 """
 function Base.:/(comp1::Component, num::Real)
     return Component(comp1, comp1.mol/num)
 end
+
 """
-    sumMass(comps)
-Calculates the molar mass of an array of Component objects
+$(TYPEDSIGNATURES)
+
+Divides the 'concentration' parameter of 'te1' by 'num'
+"""
+function Base.:/(te1::TraceElem, num::Real)
+    return Component(te1, te1.mol/num)
+end
+
+"""
+$(TYPEDSIGNATURES)
+Calculates the molar mass of an array of 'Component' variables by adding up the product of the molar mass and mol of each 'Component' in the array.
+Intent of use is calculating molar mass of a phase that is described using a 'Component' array
 """
 function sumMass(comps::Array{Component})
     mMass = 0
@@ -218,24 +262,14 @@ function sumMass(comps::Array{Component})
     return mMass
 end
 
+
 """
-    sumMol(comps)
-Adds together the moles of all Component objects in comps 
+$(TYPEDSIGNATURES)
+Checks if each cell in a 'Chemical' array is not repeated elsewhere in the array.
 """
-function sumMol(comps::Array{Component})
-    mol = 0
-    for comp in comps
-        mol += comp.mol
-    end
-    return mol
-end
-"""
-    checkUnique(comps)
-Checks if each cell in an array of Component objects is a unique component and not elsewhere in the array
-"""
-function checkUnique(comps::Array{Component})
-    for i in 1:(length(comps)-1), j in (i+1):length(comps) #Does not check against element that already checked the whole array
-        if comps[i] ≃ comps[j]
+function checkUnique(chem::Array{<:Chemical})
+    for i in 1:(lastindex(chem)-1), j in (i+1):lastindex(chem) #Does not check against element that already checked the whole array
+        if chem[i] ≃ chem[j]
             return false
         end
     end
@@ -244,21 +278,26 @@ end
 
 
 """
-    findComp(comps, fComp)
-Finds the index of fComp in the comps array, where fComp can be either a Component object or the name of a component.
+$(TYPEDSIGNATURES)
+Finds the index of 'fChem' in the 'chem' array.
 """
-function findComp(comps::Array{Component},fComp::Component)
-    for i in 1:length(comps)
-        if comps[i] ≃ fComp
+function findComp(chem::Array{<:Chemical},fChem::Chemical)
+    for i in 1:lastindex(chem)
+        if chem[i] ≃ fChem
             return i
         end
     end
     return 0
 end
 
-function findComp(comps::Array{Component}, fComp::String)
-    for i in 1:length(comps)
-        if comps[i].name == fComp
+
+"""
+$(TYPEDSIGNATURES)
+Finds the index of an element in the 'chem' array with the name of 'fChem'
+"""
+function findComp(chem::Array{Component}, fChem::String)
+    for i in 1:lastindex(chem)
+        if chem[i].name == fChem
             return i
         end
     end
