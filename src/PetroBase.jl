@@ -347,14 +347,14 @@ struct Phase
     β::Float64 #Compressibility in 1/bar
     Phase(;name = "none", compo = Array{Component}([]),traceElems = Array{TraceElem}([]),mol = 0, vol = 0, 
             mass = 0, ρ = 0, mMass = 0, G = 0, H = 0, S = 0, Cp = 0, Vmol = 0, 
-            Cp_Cv = 0, α = 0, β = 0) = new(name,compo,mol,vol,mass,ρ,mMass,G,H,S,Cp,Vmol,Cp_Cv,α,β)
+            Cp_Cv = 0, α = 0, β = 0) = new(name,compo,traceElems,mol,vol,mass,ρ,mMass,G,H,S,Cp,Vmol,Cp_Cv,α,β)
 end
 
 
 """
 $(TYPEDSIGNATURES)
 
-Returns 'g' of 'phase', useful for broadcasting
+Returns 'G' of 'phase', useful for broadcasting
 """
 function gibbs(phase::Phase)
     return phase.G
@@ -412,7 +412,7 @@ struct PetroSystem #A lot of these I can probably remove
     β::Float64 #Compressibility in 1/bar
     PetroSystem(;compo = Array{Component}([]),phases = Array{Phase}([]), traceElems = Array{TraceElem}([]),mol = 0, vol = 0, 
             mass = 0, ρ = 0, mMass = 0, G = 0, H = 0, S = 0, Cp = 0, Vmol = 0, 
-            Cp_Cv = 0, α = 0, β = 0) = new(compo,phases,mol,vol,mass,ρ,mMass,G,H,S,Cp,Vmol,Cp_Cv,α,β)
+            Cp_Cv = 0, α = 0, β = 0) = new(compo,phases,traceElems,mol,vol,mass,ρ,mMass,G,H,S,Cp,Vmol,Cp_Cv,α,β)
 end
 
 
