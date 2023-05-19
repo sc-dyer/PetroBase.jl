@@ -3,3 +3,4 @@ using
     PetroBase
 # push!(LOAD_PATH,"../src/")
 makedocs(sitename="PetroBase.jl")
+deploydocs(repo = "github.com/sc-dyer/PetroBase.jl.git")
