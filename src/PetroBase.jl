@@ -122,7 +122,8 @@ end
 """
 $(TYPEDSIGNATURES)
     
-Adds together the 'mol' parameter of two 'Component' variables that have the same name and molar mass
+Adds together the 'mol' parameter of two 'Component' variables that have the same name and molar mass.
+This will return a 'Component' with the chemical potential of the first argument.
 """
 function Base.:+(comp1::Component, comp2::Component)
     if comp1 ≃ comp2
@@ -169,7 +170,8 @@ Base.:+(num::Real,te1::TraceElem) = Base.:+(te1,num)
 """
 $(TYPEDSIGNATURES)
 
-Subtracts the 'mol' parameter of 'comp2' from 'comp1' as long as they have the same name and molar mass
+Subtracts the 'mol' parameter of 'comp2' from 'comp1' as long as they have the same name and molar mass.
+This will return a 'Component' with the chemical potential of the first argument.
 """
 function Base.:-(comp1::Component, comp2::Component)
     if comp1 ≃ comp2
@@ -280,9 +282,9 @@ end
 
 """
 $(TYPEDSIGNATURES)
-Finds the index of 'fChem' in the 'chem' array.
+Finds the first index of 'fChem' in the 'chem' array. Returns 0 if 'fChem' isnt present. Best used with arrays of unique 'Chemical' variables.
 """
-function findComp(chem::Array{<:Chemical},fChem::Chemical)
+function findChem(chem::Array{<:Chemical},fChem::Chemical)
     for i in 1:lastindex(chem)
         if chem[i] ≃ fChem
             return i
@@ -294,9 +296,10 @@ end
 
 """
 $(TYPEDSIGNATURES)
-Finds the index of an element in the 'chem' array with the name of 'fChem'
+Finds the first index of an element in the 'chem' array with the name of 'fChem'. Returns 0 if 'fChem' isnt present. 
+Best used with arrays of unique 'Chemical' variables.
 """
-function findComp(chem::Array{Component}, fChem::String)
+function findChem(chem::Array{Chemical}, fChem::String)
     for i in 1:lastindex(chem)
         if chem[i].name == fChem
             return i
