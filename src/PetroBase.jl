@@ -11,14 +11,15 @@ export
     Component, 
     TraceElem, 
     Phase, 
-    PetroSystem, 
+    PetroSystem,
+    ≃, 
     name, 
-    mol, 
+    conc, 
     sumMass, 
-    sumMol, 
     checkUnique,
-    findComp,
-    gibbs
+    findChem,
+    gibbs,
+    mol
 
 using
     DocStringExtensions
@@ -151,9 +152,10 @@ Adds together the 'concentration' parameter of two 'TraceElem' variables that ha
 """
 function Base.:+(te1::TraceElem,te2::TraceElem)
     if te1 ≃ te2
-        return TraceElem(te1,te1.concentration + ste2.concentration)
+        return TraceElem(te1,te1.concentration + te2.concentration)
     else
         throw(ArgumentError("te1 and te2 must have the same name and molar mass"))
+    end
 end
 
 """
@@ -162,7 +164,7 @@ $(TYPEDSIGNATURES)
 Adds 'num' to the 'concentration' paremeter of 'te1'
 """
 function Base.:+(te1::TraceElem,num::Real)
-    return TraceElem(te1,te1.mol+num)
+    return TraceElem(te1,te1.concentration+num)
 end
 
 Base.:+(num::Real,te1::TraceElem) = Base.:+(te1,num)
@@ -197,7 +199,7 @@ Subtracts the 'concentration' parameter of 'te2' from 'te1' as long as they have
 """
 function Base.:-(te1::TraceElem,te2::TraceElem)
     if te1 ≃ te2
-        return TraceElem(te1,te1.mol - te2.mol)
+        return TraceElem(te1,te1.concentration - te2.concentration)
     else
         throw(ArgumentError("te1 and te2 must have the same name and molar mass"))
     end
@@ -209,7 +211,7 @@ $(TYPEDSIGNATURES)
 Subtracts 'num' to the 'concentration' parameter of 'te1'
 """
 function Base.:-(te1::TraceElem, num::Real)
-    return TraceElem(te1, te1.mol-num)
+    return TraceElem(te1, te1.concentration-num)
 end
 
 """
@@ -229,7 +231,7 @@ $(TYPEDSIGNATURES)
 Multiplies the 'concentration' parameter of 'te1' by 'num'
 """
 function Base.:*(te1::TraceElem, num::Real)
-    return Component(te1, te1.mol*num)
+    return TraceElem(te1, te1.concentration*num)
 end
 
 Base.:*(num::Real, te1::TraceElem) = Base.:*(te1,num)
@@ -249,7 +251,7 @@ $(TYPEDSIGNATURES)
 Divides the 'concentration' parameter of 'te1' by 'num'
 """
 function Base.:/(te1::TraceElem, num::Real)
-    return Component(te1, te1.mol/num)
+    return TraceElem(te1, te1.concentration/num)
 end
 
 """
@@ -299,7 +301,7 @@ $(TYPEDSIGNATURES)
 Finds the first index of an element in the 'chem' array with the name of 'fChem'. Returns 0 if 'fChem' isnt present. 
 Best used with arrays of unique 'Chemical' variables.
 """
-function findChem(chem::Array{Chemical}, fChem::String)
+function findChem(chem::Array{<:Chemical}, fChem::String)
     for i in 1:lastindex(chem)
         if chem[i].name == fChem
             return i
