@@ -58,3 +58,7 @@ jobs:
             using PetroBase
             DocMeta.setdocmeta!(PetroBase, :DocTestSetup, :(using PetroBase); recursive=true)
             doctest(PetroBase)'
+      - run: julia --project=docs docs/make.jl
+              env:
+                GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+                DOCUMENTER_KEY: ${{ secrets.DOCUMENTER_KEY }}
