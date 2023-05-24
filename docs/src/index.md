@@ -11,3 +11,4 @@ This is a basic package with some useful type definitions and functions for petr
 
 ```@autodocs
 Modules = [PetroBase]
+```
