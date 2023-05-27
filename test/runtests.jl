@@ -26,6 +26,7 @@ using Test
     @test conc(comp1 + comp2) ≈ 4
     @test conc(1 + comp2) ≈ 4
     @test conc(te1+te2) ≈ 1300
+    @test conc(400 + te2) ≈ 1300
     @test conc(comp2 - comp1) ≈ 2
     @test conc(comp2 - 1) ≈ 2
     @test conc(te2 - te1) ≈ 500
