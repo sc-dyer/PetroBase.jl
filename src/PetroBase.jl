@@ -46,8 +46,10 @@ struct Component <: Chemical
     mol::Float64
     "Chemical potential (J/mol)"
     μ::Float64 #Chemical potential in J/mol
-    Component(name::String,mMass::Real,mol::Real) = Componet(name,mMass,mol,0.0)
+    
 end
+
+Component(name::String,mMass::Real,mol::Real) = Component(name,mMass,mol,0.0)
 #Simple method for being able to copy all values and change the moles
 """
 $(SIGNATURES)
