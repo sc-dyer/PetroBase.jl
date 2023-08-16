@@ -396,9 +396,9 @@ $(TYPEDFIELDS)
 """
 @kwdef struct PetroSystem #A lot of these I can probably remove
     "Composition of the system as defined by a 'Component' array"    
-    compo::Array{Component}
+    compo::Array{Component} = Array{Component}([])
     "Phases within the system"
-    phases::Array{Phase}
+    phases::Array{Phase} = Array{Phase}([])
     "Concentration of trace elements in the system"
     traceElems::Array{TraceElem} = Array{TraceElem}([])
     "Total moles of all components in the system"#Is this actually useful?
