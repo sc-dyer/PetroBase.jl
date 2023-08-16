@@ -6,6 +6,7 @@ using Test
 
     #Make components with different constructors to make sure they compile properly
     comp1 = Component("SiO2",60.08,1.0,0.0)
+    comp1a = Component("SiO2",60.08,1)
     comp2 = Component(comp1,3.0)
     comp3 = Component(comp1,μ=300.0)
     comp4 = Component("MgO",40.304,2.0,0.0)
@@ -19,6 +20,7 @@ using Test
     @test name(te2)  == "Y"
     @test comp1 ≃ comp2
     @test comp2 ≃ comp3
+    @test comp1 ≈ comp1a
     @test !(comp1 ≃ comp4)
     @test te1 ≃ te2
     @test conc(comp3) ≈ 1

@@ -46,6 +46,7 @@ struct Component <: Chemical
     mol::Float64
     "Chemical potential (J/mol)"
     μ::Float64 #Chemical potential in J/mol
+    Component(name::String,mMass::Real,mol::Real) = Componet(name,mMass,mol,0.0)
 end
 #Simple method for being able to copy all values and change the moles
 """
@@ -117,6 +118,19 @@ function ≃(comp1::Chemical, comp2::Chemical)
     return false
 end
 
+"""
+$(TYPEDSIGNATURES)
+
+This is a simple boolean operator that returns true if two 'Chemical' variables have the same name. molar mass, and amount of moles
+"""
+function Base.:≈(comp1::Chemical, comp2::Chemical)
+
+    if comp1 ≃ comp2 && comp1.mol ≈ comp2.mol
+        return true
+    end
+    
+    return false
+end
 #Basic operations for QoL addition of components,
 #currently have it return an array if components arent compatible but it might make more sense
 #to just throw an error
