@@ -11,9 +11,9 @@ using Test
     comp3 = Component(comp1,μ=300.0)
     comp4 = Component("MgO",40.304,2.0,0.0)
     #Same with trace elements
-    te1 = TraceElem("Y",88.9059,400.0)
-    te2 = TraceElem(te1,900.0)
-    te3 = TraceElem("Lu", 174.967, 50.0)
+    te1 = TraceElement("Y",88.9059,400.0)
+    te2 = TraceElement(te1,900.0)
+    te3 = TraceElement("Lu", 174.967, 50.0)
 
     #Testing the operators and simple method calls
     @test name(comp2) == "SiO2"
@@ -23,20 +23,20 @@ using Test
     @test comp1 ≈ comp1a
     @test !(comp1 ≃ comp4)
     @test te1 ≃ te2
-    @test conc(comp3) ≈ 1
-    @test conc(te1) ≈ 400
-    @test conc(comp1 + comp2) ≈ 4
-    @test conc(1 + comp2) ≈ 4
-    @test conc(te1+te2) ≈ 1300
-    @test conc(400 + te2) ≈ 1300
-    @test conc(comp2 - comp1) ≈ 2
-    @test conc(comp2 - 1) ≈ 2
-    @test conc(te2 - te1) ≈ 500
-    @test conc(te2 - 400) ≈ 500
-    @test conc(10*comp1) ≈ 10
-    @test conc(comp1/10) ≈ 0.1
-    @test conc(10*te1) ≈ 4000
-    @test conc(te1/10) ≈ 40
+    @test concentration(comp3) ≈ 1
+    @test concentration(te1) ≈ 400
+    @test concentration(comp1 + comp2) ≈ 4
+    @test concentration(1 + comp2) ≈ 4
+    @test concentration(te1+te2) ≈ 1300
+    @test concentration(400 + te2) ≈ 1300
+    @test concentration(comp2 - comp1) ≈ 2
+    @test concentration(comp2 - 1) ≈ 2
+    @test concentration(te2 - te1) ≈ 500
+    @test concentration(te2 - 400) ≈ 500
+    @test concentration(10*comp1) ≈ 10
+    @test concentration(comp1/10) ≈ 0.1
+    @test concentration(10*te1) ≈ 4000
+    @test concentration(te1/10) ≈ 40
     @test_throws ArgumentError comp1 + comp4
     @test_throws ArgumentError te1 + te3
     @test_throws ArgumentError comp4 - comp1
@@ -49,22 +49,22 @@ using Test
     teList1 = [te1,te3]
     teList2 = [te1,te2,te3]
     #Now testing some more complicated functions
-    @test sumMass(compoList1) ≈ 140.688
-    @test checkUnique(compoList1)
-    @test !checkUnique(compoList2)
-    @test checkUnique(teList1)
-    @test !checkUnique(teList2)
-    @test findChem(compoList1,comp4) == 2
-    @test findChem(compoList1,"MgO") == 2
-    @test findChem(compoList1,Component("K2O",94.2,3.0,0.0)) == 0
-    @test findChem(compoList1, "K2O") == 0
-    @test findChem(teList1,te3) == 2
-    @test findChem(teList1,"Lu") ==2
+    @test sum_mass(compoList1) ≈ 140.688
+    @test isunique(compoList1)
+    @test !isunique(compoList2)
+    @test isunique(teList1)
+    @test !isunique(teList2)
+    @test findchemical(compoList1,comp4) == 2
+    @test findchemical(compoList1,"MgO") == 2
+    @test findchemical(compoList1,Component("K2O",94.2,3.0,0.0)) == 0
+    @test findchemical(compoList1, "K2O") == 0
+    @test findchemical(teList1,te3) == 2
+    @test findchemical(teList1,"Lu") ==2
 
-    phase1 = Phase(name = "Forsterite", compo = compoList1, traceElems = teList1, mol = 3.0, G = -2403.2)
+    phase1 = Phase(name = "Forsterite", composition = compoList1, traceelements = teList1, mol = 3.0, G = -2403.2)
     @test gibbs(phase1) ≈ -2403.2
     @test mol(phase1) ≈ 3
 
-    system = PetroSystem(compo = compoList1, phases = [phase1], traceElems = teList1, mol = 3.0, G = -2403.2)
+    system = PetroSystem(composition = compoList1, phases = [phase1], traceelements = teList1, mol = 3.0, G = -2403.2)
 
 end
