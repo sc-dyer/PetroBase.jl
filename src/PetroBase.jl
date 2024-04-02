@@ -9,15 +9,15 @@ module PetroBase
 export 
     Chemical, 
     Component, 
-    TraceElem, 
+    TraceElement, 
     Phase, 
     PetroSystem,
     ≃, 
     name, 
-    conc, 
-    sumMass, 
-    checkUnique,
-    findChem,
+    concentration, 
+    sum_mass, 
+    isunique,
+    findchemical,
     gibbs,
     mol
 
@@ -41,18 +41,21 @@ struct Component <: Chemical
     "Name of the component"
     name::String
     "Molar mass (g/mol)"
-    mMass::Float64 #short for Molar Mass
+    molarmass::Float64 #short for Molar Mass
     "Moles of the component"
     mol::Float64
     "Chemical potential (J/mol)"
     μ::Float64 #Chemical potential in J/mol
+    
 end
+
+Component(name::String,molarmass::Real,mol::Real) = Component(name,molarmass,mol,0.0)
 #Simple method for being able to copy all values and change the moles
 """
 $(SIGNATURES)
 Clones the parameters of a 'Component' but with change of 'mol' and/or 'μ'
 """
-Component(clone::Component, mol::Real = clone.mol;μ::Real=clone.μ) = Component(clone.name, clone.mMass, mol, μ)
+Component(clone::Component, mol::Real = clone.mol;μ::Real=clone.μ) = Component(clone.name, clone.molarmass, mol, μ)
 
 
 """
@@ -61,11 +64,11 @@ Describes the trace element concentration of a phase or system. Typically the on
 
 $(TYPEDFIELDS)
 """
-struct TraceElem <: Chemical
+struct TraceElement <: Chemical
     "Name of the element"
     name::String
     "Molar mass (g/mol)"
-    mMass::Float64
+    molarmass::Float64
     "Concentration in the system or phase (µg/g)"
     concentration::Float64
     
@@ -73,9 +76,9 @@ end
 
 """
 $(SIGNATURES)
-Clones the parameters of a 'TraceElem' but with change of 'concentration'
+Clones the parameters of a 'TraceElement' but with change of 'concentration'
 """
-TraceElem(clone::TraceElem,conc::Real) = TraceElem(clone.name,clone.mMass,conc)
+TraceElement(clone::TraceElement,conc::Real) = TraceElement(clone.name,clone.molarmass,conc)
 
 """
 $(TYPEDSIGNATURES)
@@ -91,16 +94,16 @@ $(TYPEDSIGNATURES)
 
 Returns the 'mol' of 'comp', useful for broadcasting
 """
-function conc(comp::Component)
+function concentration(comp::Component)
     return comp.mol
 end
 
 """
 $(TYPEDSIGNATURES)
 
-Returns the 'concentration' of a 'TraceElem', useful for broadcasting
+Returns the 'concentration' of a 'TraceElement', useful for broadcasting
 """
-function conc(te::TraceElem)
+function concentration(te::TraceElement)
     return te.concentration
 end
 #An operator defined to compare if two components are the same except for the amount of moles
@@ -110,13 +113,26 @@ $(TYPEDSIGNATURES)
 This is a simple boolean operator that returns true if two 'Chemical' variables have the same name and molar mass
 """
 function ≃(comp1::Chemical, comp2::Chemical)
-    if comp1.name == comp2.name && comp1.mMass ≈ comp2.mMass
+    if comp1.name == comp2.name && comp1.molarmass ≈ comp2.molarmass
         return true
     end
     
     return false
 end
 
+"""
+$(TYPEDSIGNATURES)
+
+This is a simple boolean operator that returns true if two 'Chemical' variables have the same name. molar mass, and amount of moles
+"""
+function Base.:≈(comp1::Chemical, comp2::Chemical)
+
+    if comp1 ≃ comp2 && comp1.mol ≈ comp2.mol
+        return true
+    end
+    
+    return false
+end
 #Basic operations for QoL addition of components,
 #currently have it return an array if components arent compatible but it might make more sense
 #to just throw an error
@@ -148,11 +164,11 @@ Base.:+(num::Real, comp1::Component) = Base.:+(comp1,num)
 """
 $(TYPEDSIGNATURES)
     
-Adds together the 'concentration' parameter of two 'TraceElem' variables that have the same name and molar mass
+Adds together the 'concentration' parameter of two 'TraceElement' variables that have the same name and molar mass
 """
-function Base.:+(te1::TraceElem,te2::TraceElem)
+function Base.:+(te1::TraceElement,te2::TraceElement)
     if te1 ≃ te2
-        return TraceElem(te1,te1.concentration + te2.concentration)
+        return TraceElement(te1,te1.concentration + te2.concentration)
     else
         throw(ArgumentError("te1 and te2 must have the same name and molar mass"))
     end
@@ -163,11 +179,11 @@ $(TYPEDSIGNATURES)
     
 Adds 'num' to the 'concentration' paremeter of 'te1'
 """
-function Base.:+(te1::TraceElem,num::Real)
-    return TraceElem(te1,te1.concentration+num)
+function Base.:+(te1::TraceElement,num::Real)
+    return TraceElement(te1,te1.concentration+num)
 end
 
-Base.:+(num::Real,te1::TraceElem) = Base.:+(te1,num)
+Base.:+(num::Real,te1::TraceElement) = Base.:+(te1,num)
 
 """
 $(TYPEDSIGNATURES)
@@ -197,9 +213,9 @@ $(TYPEDSIGNATURES)
 
 Subtracts the 'concentration' parameter of 'te2' from 'te1' as long as they have the same name and molar mass
 """
-function Base.:-(te1::TraceElem,te2::TraceElem)
+function Base.:-(te1::TraceElement,te2::TraceElement)
     if te1 ≃ te2
-        return TraceElem(te1,te1.concentration - te2.concentration)
+        return TraceElement(te1,te1.concentration - te2.concentration)
     else
         throw(ArgumentError("te1 and te2 must have the same name and molar mass"))
     end
@@ -210,8 +226,8 @@ $(TYPEDSIGNATURES)
     
 Subtracts 'num' to the 'concentration' parameter of 'te1'
 """
-function Base.:-(te1::TraceElem, num::Real)
-    return TraceElem(te1, te1.concentration-num)
+function Base.:-(te1::TraceElement, num::Real)
+    return TraceElement(te1, te1.concentration-num)
 end
 
 """
@@ -230,11 +246,11 @@ $(TYPEDSIGNATURES)
 
 Multiplies the 'concentration' parameter of 'te1' by 'num'
 """
-function Base.:*(te1::TraceElem, num::Real)
-    return TraceElem(te1, te1.concentration*num)
+function Base.:*(te1::TraceElement, num::Real)
+    return TraceElement(te1, te1.concentration*num)
 end
 
-Base.:*(num::Real, te1::TraceElem) = Base.:*(te1,num)
+Base.:*(num::Real, te1::TraceElement) = Base.:*(te1,num)
 
 """
 $(TYPEDSIGNATURES)
@@ -250,8 +266,8 @@ $(TYPEDSIGNATURES)
 
 Divides the 'concentration' parameter of 'te1' by 'num'
 """
-function Base.:/(te1::TraceElem, num::Real)
-    return TraceElem(te1, te1.concentration/num)
+function Base.:/(te1::TraceElement, num::Real)
+    return TraceElement(te1, te1.concentration/num)
 end
 
 """
@@ -259,12 +275,12 @@ $(TYPEDSIGNATURES)
 Calculates the molar mass of an array of 'Component' variables by adding up the product of the molar mass and mol of each 'Component' in the array.
 Intent of use is calculating molar mass of a phase that is described using a 'Component' array
 """
-function sumMass(comps::Array{Component})
-    mMass = 0
+function sum_mass(comps::Array{Component})
+    molarmass = 0
     for comp in comps
-        mMass += comp.mMass*comp.mol
+        molarmass += comp.molarmass*comp.mol
     end
-    return mMass
+    return molarmass
 end
 
 
@@ -272,7 +288,7 @@ end
 $(TYPEDSIGNATURES)
 Checks if each cell in a 'Chemical' array is not repeated elsewhere in the array.
 """
-function checkUnique(chem::Array{<:Chemical})
+function isunique(chem::Array{<:Chemical})
     for i in 1:(lastindex(chem)-1), j in (i+1):lastindex(chem) #Does not check against element that already checked the whole array
         if chem[i] ≃ chem[j]
             return false
@@ -286,7 +302,7 @@ end
 $(TYPEDSIGNATURES)
 Finds the first index of 'fChem' in the 'chem' array. Returns 0 if 'fChem' isnt present. Best used with arrays of unique 'Chemical' variables.
 """
-function findChem(chem::Array{<:Chemical},fChem::Chemical)
+function findchemical(chem::Array{<:Chemical},fChem::Chemical)
     for i in 1:lastindex(chem)
         if chem[i] ≃ fChem
             return i
@@ -301,7 +317,7 @@ $(TYPEDSIGNATURES)
 Finds the first index of an element in the 'chem' array with the name of 'fChem'. Returns 0 if 'fChem' isnt present. 
 Best used with arrays of unique 'Chemical' variables.
 """
-function findChem(chem::Array{<:Chemical}, fChem::String)
+function findchemical(chem::Array{<:Chemical}, fChem::String)
     for i in 1:lastindex(chem)
         if chem[i].name == fChem
             return i
@@ -320,9 +336,9 @@ $(TYPEDFIELDS)
     "Name of the phase"
     name::String
     "Composition of the phase as defined by a 'Component' array"
-    compo::Array{Component}
+    composition::Array{Component}
     "Concentration of trace elements in the phase"
-    traceElems::Array{TraceElem} = Array{TraceElem}([])#In general I anticipate it is more useful to have TEs and Components seperate
+    traceelements::Array{TraceElement} = Array{TraceElement}([])#In general I anticipate it is more useful to have TEs and Components seperate
     "Number of moles of the phase present in the system"
     mol::Float64 = 0
     "Volume of phase present in the system (J/bar [m^3/10^5])"
@@ -332,7 +348,7 @@ $(TYPEDFIELDS)
     "Density (kg/m^3)"
     ρ::Float64 = 0 #Density in kg/m^3
     "Molar mass (g/mol)"
-    mMass::Float64 = 0
+    molarmass::Float64 = 0
     #Thermo properties
     "Gibbs free energy (J/mol)"
     G::Float64 = 0 #J/mol
@@ -380,11 +396,11 @@ $(TYPEDFIELDS)
 """
 @kwdef struct PetroSystem #A lot of these I can probably remove
     "Composition of the system as defined by a 'Component' array"    
-    compo::Array{Component}
+    composition::Array{Component} = Array{Component}([])
     "Phases within the system"
-    phases::Array{Phase}
+    phases::Array{Phase} = Array{Phase}([])
     "Concentration of trace elements in the system"
-    traceElems::Array{TraceElem} = Array{TraceElem}([])
+    traceelements::Array{TraceElement} = Array{TraceElement}([])
     "Total moles of all components in the system"#Is this actually useful?
     mol::Float64 = 0
     "Total volume of all phases in the system(J/bar [m^3/10^5])"
@@ -394,7 +410,7 @@ $(TYPEDFIELDS)
     "Density of the system (kg/m^3)"
     ρ::Float64 = 0#Density in kg/m^3
     "Molar mass of the system (kg/m^3)"
-    mMass::Float64 = 0
+    molarmass::Float64 = 0
     #Thermo properties
     "Gibbs free energy (J/mol)"
     G::Float64 = 0#J/mol
