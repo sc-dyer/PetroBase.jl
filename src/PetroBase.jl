@@ -317,9 +317,9 @@ $(TYPEDSIGNATURES)
 Finds the first index of an element in the 'chem' array with the name of 'fChem'. Returns 0 if 'fChem' isnt present. 
 Best used with arrays of unique 'Chemical' variables.
 """
-function findchemical(chem::Array{<:Chemical}, fChem::String)
+function findchemical(chem::Array{<:Chemical}, fchem::String)
     for i in 1:lastindex(chem)
-        if chem[i].name == fChem
+        if chem[i].name == fchem
             return i
         end
     end
