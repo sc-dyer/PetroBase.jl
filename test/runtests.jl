@@ -21,6 +21,7 @@ using Test
     @test comp1 ≃ comp2
     @test comp2 ≃ comp3
     @test comp1 ≈ comp1a
+    @test !(comp1 ≈ comp2)
     @test !(comp1 ≃ comp4)
     @test te1 ≃ te2
     @test concentration(comp3) ≈ 1
