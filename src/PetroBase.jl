@@ -19,12 +19,16 @@ export
     isunique,
     findchemical,
     gibbs,
-    mol
+    mol,
+    sum_mols,
+    majorcation
 
 using
     DocStringExtensions
 # Write your package code here.
 
+const O_MASS = 15.999
+const H_MASS = 1.00784
 """
 Abstract supertype for chemical components and trace elements
 """
@@ -41,21 +45,28 @@ struct Component <: Chemical
     "Name of the component"
     name::String
     "Molar mass (g/mol)"
-    molarmass::Float64 #short for Molar Mass
+    molarmass::Float64 
     "Moles of the component"
     mol::Float64
+    "Number of cations"
+    cat::Real
+    "Number of oxygen atoms"
+    ox::Real
+    "Charge on cations"
+    catcharge::Real
     "Chemical potential (J/mol)"
     μ::Float64 #Chemical potential in J/mol
-    
 end
 
-Component(name::String,molarmass::Real,mol::Real) = Component(name,molarmass,mol,0.0)
-#Simple method for being able to copy all values and change the moles
+Component(name,molarmass,mol,cat,ox,catcharge) = Component(name,molarmass,mol,cat,ox,catcharge,0.0)
+Component(name,molarmass,mol) = Component(name,molarmass,mol,0,0,0,0.0)
+
+Component(name,molarmass,cat,ox,catcharge;mass=0,μ=0) = Component(name,molarmass,mass/molarmass,cat,ox,catcharge,μ)
 """
 $(SIGNATURES)
 Clones the parameters of a 'Component' but with change of 'mol' and/or 'μ'
 """
-Component(clone::Component, mol::Real = clone.mol;μ::Real=clone.μ) = Component(clone.name, clone.molarmass, mol, μ)
+Component(clone, mol = clone.mol;μ=clone.μ) = Component(clone.name, clone.molarmass, mol,clone.cat,clone.ox,clone.catcharge, μ)
 
 
 """
@@ -275,22 +286,30 @@ $(TYPEDSIGNATURES)
 Calculates the molar mass of an array of 'Component' variables by adding up the product of the molar mass and mol of each 'Component' in the array.
 Intent of use is calculating molar mass of a phase that is described using a 'Component' array
 """
-function sum_mass(comps::Array{Component})
+function sum_mass(components)
     molarmass = 0
-    for comp in comps
+    for comp in components
         molarmass += comp.molarmass*comp.mol
     end
     return molarmass
 end
 
+function sum_mols(components)
+    mol = 0
 
+    for comp in components
+        mol += concentration(comp)
+    end
+
+    return mol
+end
 """
 $(TYPEDSIGNATURES)
 Checks if each cell in a 'Chemical' array is not repeated elsewhere in the array.
 """
-function isunique(chem::Array{<:Chemical})
-    for i in 1:(lastindex(chem)-1), j in (i+1):lastindex(chem) #Does not check against element that already checked the whole array
-        if chem[i] ≃ chem[j]
+function isunique(chemicals)
+    for i in 1:(lastindex(chemicals)-1), j in (i+1):lastindex(chemicals) #Does not check against element that already checked the whole array
+        if chemicals[i] ≃ chemicals[j]
             return false
         end
     end
@@ -302,9 +321,9 @@ end
 $(TYPEDSIGNATURES)
 Finds the first index of 'fChem' in the 'chem' array. Returns 0 if 'fChem' isnt present. Best used with arrays of unique 'Chemical' variables.
 """
-function findchemical(chem::Array{<:Chemical},fChem::Chemical)
-    for i in 1:lastindex(chem)
-        if chem[i] ≃ fChem
+function findchemical(chemicals,fchem::Chemical)
+    for i in 1:lastindex(chemicals)
+        if chemicals[i] ≃ fchem
             return i
         end
     end
@@ -317,9 +336,9 @@ $(TYPEDSIGNATURES)
 Finds the first index of an element in the 'chem' array with the name of 'fChem'. Returns 0 if 'fChem' isnt present. 
 Best used with arrays of unique 'Chemical' variables.
 """
-function findchemical(chem::Array{<:Chemical}, fchem::String)
-    for i in 1:lastindex(chem)
-        if chem[i].name == fchem
+function findchemical(chemicals, fchem::String)
+    for i in 1:lastindex(chemicals)
+        if chemicals[i].name == fchem
             return i
         end
     end
@@ -374,7 +393,7 @@ $(TYPEDSIGNATURES)
 
 Returns 'G' of 'phase', useful for broadcasting
 """
-function gibbs(phase::Phase)
+function gibbs(phase)
     return phase.G
 end
 
@@ -384,7 +403,7 @@ $(TYPEDSIGNATURES)
 
 Returns the 'mol' of 'phase', useful for broadcasting
 """
-function mol(phase::Phase)
+function mol(phase)
     return phase.mol
 end
 
@@ -431,5 +450,74 @@ $(TYPEDFIELDS)
 
 end
 
+
+function majorcation(phase, cat, ox, hydrox)
+    totalcharge = 2*ox-hydrox
+    catcomponents = Array{Component}([])
+
+    for component in phase.composition
+        if component.ox > 0
+            cat_name = match(r"[^O|\d]*",component.name).match
+            if cat_name == "Fe"
+                cat_name = "Fe2+"
+            end
+            cat_mol = concentration(component) * component.cat
+            cat_molarmass = (component.molarmass - component.ox*O_MASS)/component.cat
+            cat_component = Component(cat_name,cat_molarmass,cat_mol,component.cat,0,component.catcharge)
+            push!(catcomponents,cat_component)
+        else
+            push!(catcomponenets,component)
+        end
+    end
+
+    cat_mol_total = sum_mols(catcomponents)
+    cat_charge_total = 0
+    for i in 1:lastindex(catcomponents)
+        # mol_norm = concentration(component)*cat/cat_mol_total
+        catcomponents[i] = catcomponents[i] *(cat/cat_mol_total)
+        cat_charge_total += concentration(catcomponents[i])*catcomponents[i].catcharge
+    end
+
+    charge_def = totalcharge-cat_charge_total
+    
+    fe_index = findchemical(catcomponents, "Fe2+")
+    if fe_index > 0
+        if charge_def > concentration(catcomponents[fe_index])
+            fe3_mol = concentration(catcomponents[fe_index])
+            push!(catcomponents,Component("Fe3+",catcomponents[fe_index].molarmass,fe3_mol,1,0,3))
+            popat!(catcomponents,fe_index)
+            
+        elseif charge_def >= 0 
+            fe3_mol = charge_def
+            push!(catcomponents,Component("Fe3+",catcomponents[fe_index].molarmass,fe3_mol,1,0,3))
+            catcomponents[fe_index] -= fe3_mol
+        end
+    end
+
+    if hydrox > 0
+        h_index = findchemical(catcomponents, "H")
+        if h_index == 0
+            push!(catcomponents, Component("H",H_MASS,0,1,0,1))
+            h_index = lastindex(catcomponents)
+        end
+        f_index = findchemical(catcomponents, "F")
+        cl_index = findchemical(catcomponents, "Cl")
+        h_total = hydrox
+
+        if f_index > 0
+            h_total -= concentration(catcomponents[f_index])
+        end
+        if cl_index > 0
+            h_total -= concentration(catcomponents[cl_index])
+        end
+
+        catcomponents[h_index] = Component(catcomponents[h_index],h_total)
+            
+        
+            
+    end
+
+    return catcomponents
+end
 
 end

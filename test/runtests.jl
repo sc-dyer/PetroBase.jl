@@ -5,11 +5,11 @@ using Test
     # Write your tests here.
 
     #Make components with different constructors to make sure they compile properly
-    comp1 = Component("SiO2",60.08,1.0,0.0)
+    comp1 = Component("SiO2",60.08,1.0,1,2,4,0.0)
     comp1a = Component("SiO2",60.08,1)
     comp2 = Component(comp1,3.0)
     comp3 = Component(comp1,μ=300.0)
-    comp4 = Component("MgO",40.304,2.0,0.0)
+    comp4 = Component("MgO",40.304,2.0,1,1,2,0.0)
     #Same with trace elements
     te1 = TraceElement("Y",88.9059,400.0)
     te2 = TraceElement(te1,900.0)
@@ -51,13 +51,14 @@ using Test
     teList2 = [te1,te2,te3]
     #Now testing some more complicated functions
     @test sum_mass(compoList1) ≈ 140.688
+    @test sum_mols(compoList1) ≈ 3
     @test isunique(compoList1)
     @test !isunique(compoList2)
     @test isunique(teList1)
     @test !isunique(teList2)
     @test findchemical(compoList1,comp4) == 2
     @test findchemical(compoList1,"MgO") == 2
-    @test findchemical(compoList1,Component("K2O",94.2,3.0,0.0)) == 0
+    @test findchemical(compoList1,Component("K2O",94.2,3.0)) == 0
     @test findchemical(compoList1, "K2O") == 0
     @test findchemical(teList1,te3) == 2
     @test findchemical(teList1,"Lu") ==2
@@ -68,4 +69,16 @@ using Test
 
     system = PetroSystem(composition = compoList1, phases = [phase1], traceelements = teList1, mol = 3.0, G = -2403.2)
 
+
+    c1 = Component("FeO",71.850,1,1,2,mass=45.333)
+    c2 = Component("TiO2",79.90,1,2,4,mass=52.7124)
+    c3 = Component("MnO",70.937,1,1,2,mass=2.64039)
+
+    ilm = Phase(name = "Ilmenite",composition = [c1,c2,c3], mol = 1.0)
+    ilmcat = majorcation(ilm,2,3,0)
+    @test length(ilmcat) == 4
+    @test round(concentration(ilmcat[findchemical(ilmcat,"Ti")]),sigdigits=3) ≈ 0.994
+    @test round(concentration(ilmcat[findchemical(ilmcat,"Mn")]),sigdigits=2) ≈ 0.056
+    @test round(concentration(ilmcat[findchemical(ilmcat,"Fe2+")]),sigdigits=3) ≈ 0.938
+    @test round(concentration(ilmcat[findchemical(ilmcat,"Fe3+")]),sigdigits=2) ≈ 0.013
 end
