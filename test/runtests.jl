@@ -7,7 +7,7 @@ using Test
     #Make components with different constructors to make sure they compile properly
     comp1 = Component("SiO2",60.08,1.0,1,2,4,0.0)
     comp1a = Component("SiO2",60.08,1)
-    comp2 = Component(comp1,3.0)
+    comp2 = Component(comp1,mol=3.0)
     comp3 = Component(comp1,μ=300.0)
     comp4 = Component("MgO",40.304,2.0,1,1,2,0.0)
     #Same with trace elements
