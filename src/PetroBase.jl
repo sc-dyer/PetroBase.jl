@@ -322,11 +322,15 @@ function sum_mass(components)
     return molarmass
 end
 
+"""
+$(TYPEDSIGNATURES)
+Calculates the total mols of an array of PetroBase structs that have a 'mol' parameter. This should work for 'Phase' or 'Component'
+"""
 function sum_mols(components)
     mol = 0
 
     for comp in components
-        mol += concentration(comp)
+        mol += comp.mol
     end
 
     return mol
