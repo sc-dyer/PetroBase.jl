@@ -58,7 +58,8 @@ $(TYPEDFIELDS)
     μ::Float64 = 0#Chemical potential in J/mol
 end
 
-Component(name, molarmass, mol) = Component(name = name, molarmass = molarmass, mol = mol)
+# Component(name, molarmass, mol) = Component(name = name, molarmass = molarmass, mol = mol)
+Component(name, molarmass, mol;μ = 0, cat = 0, ox = 0, catcharge = 0) = Component(name= name,molarmass=molarmass,mol=mol,cat=cat,ox=ox,catcharge=catcharge,μ = μ)
 Component(name,molarmass,mol,cat,ox,catcharge) = Component(name= name,molarmass=molarmass,mol=mol,cat=cat,ox=ox,catcharge=catcharge,μ = 0.0)
 # Component(name,molarmass,mol) = Component(name,molarmass,mol,0,0,0,0.0)
 
