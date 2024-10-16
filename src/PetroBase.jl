@@ -66,8 +66,22 @@ Component(name,molarmass,cat,ox,catcharge;mass=0,μ=0) = Component(name,molarmas
 $(SIGNATURES)
 Clones the parameters of a 'Component' but with change of 'mol' and/or 'μ'
 """
-Component(clone, mol = clone.mol;μ=clone.μ) = Component(clone.name, clone.molarmass, mol,clone.cat,clone.ox,clone.catcharge, μ)
+# Component(clone, mol = clone.mol;μ=clone.μ) = Component(clone.name, clone.molarmass, mol,clone.cat,clone.ox,clone.catcharge, μ)
+# Component(clone;mass = 0, μ=clone.μ) = Component(clone.name, clone.molarmass, mass/clone.molarmass,clone.cat,clone.ox,clone.catcharge, μ)
 
+function Component(clone; mol = Nothing,  μ = clone.μ, mass = Nothing)
+    if mass isa Number && mol isa Number
+        throw(ArgumentError("Cannot define component with both mol and mass, please choose one"))
+    end
+
+    if mass isa Number
+        return Component(clone.name, clone.molarmass, mass/clone.molarmass,clone.cat,clone.ox,clone.catcharge, μ)
+    elseif mol isa Number
+        return Component(clone.name, clone.molarmass, mol,clone.cat,clone.ox,clone.catcharge, μ)
+    else
+        return Component(clone.name,clone.molarmass,clone.mol,clone.cat,clone.ox,clone.catcharge,μ)
+    end
+end
 
 """
 $(SIGNATURES)
@@ -89,15 +103,15 @@ end
 $(SIGNATURES)
 Clones the parameters of a 'TraceElement' but with change of 'concentration'
 """
-TraceElement(clone::TraceElement,conc::Real) = TraceElement(clone.name,clone.molarmass,conc)
+TraceElement(clone,concentration) = TraceElement(clone.name,clone.molarmass,concentration)
 
 """
 $(TYPEDSIGNATURES)
 
-Returns 'name' of a 'chem', useful for broadcasting
+Returns 'name' of any PetroBase struct with a 'name' parameter, including 'Component' and 'Phase' useful for broadcasting
 """
-function name(chem::Chemical) 
-    return chem.name
+function name(item) 
+    return item.name
 end
 
 """
@@ -134,11 +148,25 @@ end
 """
 $(TYPEDSIGNATURES)
 
-This is a simple boolean operator that returns true if two 'Chemical' variables have the same name. molar mass, and amount of moles
+This is a simple boolean operator that returns true if two 'Component' variables have the same name. molar mass, and amount of moles
 """
-function Base.:≈(comp1::Chemical, comp2::Chemical)
+function Base.:≈(comp1::Component, comp2::Component)
 
     if comp1 ≃ comp2 && comp1.mol ≈ comp2.mol
+        return true
+    end
+    
+    return false
+end
+
+"""
+$(TYPEDSIGNATURES)
+
+This is a simple boolean operator that returns true if two 'TraceElement' variables have the same name. molar mass, and amount of moles
+"""
+function Base.:≈(te1::TraceElement, te2::TraceElement)
+
+    if te1 ≃ te2 && te1.mol ≈ te2.mol
         return true
     end
     
@@ -155,7 +183,7 @@ This will return a 'Component' with the chemical potential of the first argument
 """
 function Base.:+(comp1::Component, comp2::Component)
     if comp1 ≃ comp2
-        return Component(comp1,comp1.mol + comp2.mol)
+        return Component(comp1,mol = comp1.mol + comp2.mol)
     else
         throw(ArgumentError("comp1 and comp2 must have the same name and molar mass"))
     end
@@ -167,7 +195,7 @@ $(TYPEDSIGNATURES)
 Adds 'num' to the 'mol' of 'comp1'
 """
 function Base.:+(comp1::Component, num::Real)
-    return Component(comp1, comp1.mol+num)
+    return Component(comp1, mol = comp1.mol+num)
 end
 
 Base.:+(num::Real, comp1::Component) = Base.:+(comp1,num)
@@ -204,7 +232,7 @@ This will return a 'Component' with the chemical potential of the first argument
 """
 function Base.:-(comp1::Component, comp2::Component)
     if comp1 ≃ comp2
-        return Component(comp1,comp1.mol - comp2.mol)
+        return Component(comp1,mol = comp1.mol - comp2.mol)
     else
         throw(ArgumentError("comp1 and comp2 must have the same name and molar mass"))
     end
@@ -216,7 +244,7 @@ $(TYPEDSIGNATURES)
 Subtracts 'num' to the 'mol' parameter of 'comp1'
 """
 function Base.:-(comp1::Component, num::Real)
-    return Component(comp1, comp1.mol-num)
+    return Component(comp1, mol = comp1.mol-num)
 end
 
 """
@@ -247,7 +275,7 @@ $(TYPEDSIGNATURES)
 Multiplies the 'mol' parameter of 'comp1' by 'num'
 """
 function Base.:*(comp1::Component, num::Real)
-    return Component(comp1, comp1.mol*num)
+    return Component(comp1, mol = comp1.mol*num)
 end
 
 Base.:*(num::Real, comp1::Component) = Base.:*(comp1,num)
@@ -269,7 +297,7 @@ $(TYPEDSIGNATURES)
 Divides the 'mol' parameter of 'comp1' by 'num'
 """
 function Base.:/(comp1::Component, num::Real)
-    return Component(comp1, comp1.mol/num)
+    return Component(comp1, mol = comp1.mol/num)
 end
 
 """
@@ -336,7 +364,7 @@ $(TYPEDSIGNATURES)
 Finds the first index of an element in the 'chem' array with the name of 'fChem'. Returns 0 if 'fChem' isnt present. 
 Best used with arrays of unique 'Chemical' variables.
 """
-function findchemical(chemicals, fchem::String)
+function findchemical(chemicals, fchem)
     for i in 1:lastindex(chemicals)
         if chemicals[i].name == fchem
             return i
@@ -450,7 +478,11 @@ $(TYPEDFIELDS)
 
 end
 
+"""
+$(TYPEDSIGNATURES)
 
+Calculates the major cations of a phase given the expected number of cations, oxygens and hydroxides
+"""
 function majorcation(phase, cat, ox, hydrox)
     totalcharge = 2*ox-hydrox
     catcomponents = Array{Component}([])
@@ -466,16 +498,26 @@ function majorcation(phase, cat, ox, hydrox)
             cat_component = Component(cat_name,cat_molarmass,cat_mol,component.cat,0,component.catcharge)
             push!(catcomponents,cat_component)
         else
-            push!(catcomponenets,component)
+            push!(catcomponents,component)
         end
     end
 
-    cat_mol_total = sum_mols(catcomponents)
+    cat_mol_total = 0
+    for component in catcomponents
+        if component.name != "H" || component.name != "F" || component.name != "Cl"
+            cat_mol_total += concentration(component)
+        end
+    end
+
+    # cat_mol_total = sum_mols(catcomponents)
     cat_charge_total = 0
     for i in 1:lastindex(catcomponents)
         # mol_norm = concentration(component)*cat/cat_mol_total
+        
         catcomponents[i] = catcomponents[i] *(cat/cat_mol_total)
-        cat_charge_total += concentration(catcomponents[i])*catcomponents[i].catcharge
+        if catcomponents[i].name != "H" || catcomponents[i].name != "F" || catcomponents[i].name != "Cl"
+            cat_charge_total += concentration(catcomponents[i])*catcomponents[i].catcharge
+        end
     end
 
     charge_def = totalcharge-cat_charge_total
@@ -511,8 +553,8 @@ function majorcation(phase, cat, ox, hydrox)
             h_total -= concentration(catcomponents[cl_index])
         end
 
-        catcomponents[h_index] = Component(catcomponents[h_index],h_total)
-            
+        catcomponents[h_index] = Component(catcomponents[h_index],mol = h_total)
+   
         
             
     end
