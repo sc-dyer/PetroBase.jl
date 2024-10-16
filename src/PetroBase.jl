@@ -41,7 +41,7 @@ Typically the only values that will ever changed are mol and chemical potential.
 
 $(TYPEDFIELDS)
 """
-struct Component <: Chemical
+@kwdef struct Component <: Chemical
     "Name of the component"
     name::String
     "Molar mass (g/mol)"
@@ -49,19 +49,20 @@ struct Component <: Chemical
     "Moles of the component"
     mol::Float64
     "Number of cations"
-    cat::Real
+    cat::Real = 0
     "Number of oxygen atoms"
-    ox::Real
+    ox::Real = 0
     "Charge on cations"
-    catcharge::Real
+    catcharge::Real = 0
     "Chemical potential (J/mol)"
-    μ::Float64 #Chemical potential in J/mol
+    μ::Float64 = 0#Chemical potential in J/mol
 end
 
-Component(name,molarmass,mol,cat,ox,catcharge) = Component(name,molarmass,mol,cat,ox,catcharge,0.0)
-Component(name,molarmass,mol) = Component(name,molarmass,mol,0,0,0,0.0)
+Component(name, molarmass, mol) = Component(name = name, molarmass = molarmass, mol = mol)
+Component(name,molarmass,mol,cat,ox,catcharge) = Component(name= name,molarmass=molarmass,mol=mol,cat=cat,ox=ox,catcharge=catcharge,μ = 0.0)
+# Component(name,molarmass,mol) = Component(name,molarmass,mol,0,0,0,0.0)
 
-Component(name,molarmass,cat,ox,catcharge;mass=0,μ=0) = Component(name,molarmass,mass/molarmass,cat,ox,catcharge,μ)
+Component(name,molarmass,cat,ox,catcharge;mass=0,μ=0) = Component(name = name,molarmass = molarmass,mol = mass/molarmass,cat = cat,ox = ox,catcharge = catcharge,μ = μ)
 """
 $(SIGNATURES)
 Clones the parameters of a 'Component' but with change of 'mol' and/or 'μ'
