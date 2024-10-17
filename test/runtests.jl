@@ -63,6 +63,11 @@ using Test
     @test findchemical(teList1,te3) == 2
     @test findchemical(teList1,"Lu") ==2
 
+    compstart = Component("SiO2",60.08,1)
+    compend = Component("SiO2",60.08,10)
+    comprange = range(compstart,compend,length=10)
+    @test concentration(comprange[4]) ≈ 4.0
+
     phase1 = Phase(name = "Forsterite", composition = compoList1, traceelements = teList1, mol = 3.0, G = -2403.2)
     @test gibbs(phase1) ≈ -2403.2
     @test mol(phase1) ≈ 3

@@ -21,7 +21,8 @@ export
     gibbs,
     mol,
     sum_mols,
-    majorcation
+    majorcation,
+    change_list_component
 
 using
     DocStringExtensions
@@ -29,6 +30,8 @@ using
 
 const O_MASS = 15.999
 const H_MASS = 1.00784
+
+#Following are constructors of Chemical type objects
 """
 Abstract supertype for chemical components and trace elements
 """
@@ -85,6 +88,7 @@ function Component(clone; mol = Nothing,  μ = clone.μ, mass = Nothing)
     end
 end
 
+
 """
 $(SIGNATURES)
 Describes the trace element concentration of a phase or system. Typically the only value that will change is concentration
@@ -107,13 +111,16 @@ Clones the parameters of a 'TraceElement' but with change of 'concentration'
 """
 TraceElement(clone,concentration) = TraceElement(clone.name,clone.molarmass,concentration)
 
+
+
+#Some basic broadcasting functions
 """
 $(TYPEDSIGNATURES)
 
 Returns 'name' of any PetroBase struct with a 'name' parameter, including 'Component' and 'Phase' useful for broadcasting
 """
-function name(item) 
-    return item.name
+function name(petroitem) 
+    return petroitem.name
 end
 
 """
@@ -133,6 +140,10 @@ Returns the 'concentration' of a 'TraceElement', useful for broadcasting
 function concentration(te::TraceElement)
     return te.concentration
 end
+
+
+
+#Operators and Base functions
 #An operator defined to compare if two components are the same except for the amount of moles
 """
 $(TYPEDSIGNATURES)
@@ -313,6 +324,17 @@ end
 
 """
 $(TYPEDSIGNATURES)
+
+Returns a 'Component' with the same values except mol is set to 0. Useful for LinRange function
+"""
+function Base.zero(val::Component)
+    return Component(val,mol=0)
+end
+
+
+
+"""
+$(TYPEDSIGNATURES)
 Calculates the molar mass of an array of 'Component' variables by adding up the product of the molar mass and mol of each 'Component' in the array.
 Intent of use is calculating molar mass of a phase that is described using a 'Component' array
 """
@@ -337,6 +359,7 @@ function sum_mols(components)
 
     return mol
 end
+
 """
 $(TYPEDSIGNATURES)
 Checks if each cell in a 'Chemical' array is not repeated elsewhere in the array.
@@ -364,7 +387,6 @@ function findchemical(chemicals,fchem::Chemical)
     return 0
 end
 
-
 """
 $(TYPEDSIGNATURES)
 Finds the first index of an element in the 'chem' array with the name of 'fChem'. Returns 0 if 'fChem' isnt present. 
@@ -379,6 +401,22 @@ function findchemical(chemicals, fchem)
     return 0
 end
 
+"""
+$(TYPEDSIGNATURES)
+
+Simple function to change the 'mol' of a specific 'Component' in a list of components.
+"""
+function change_list_component(components,mol,selectcomp)
+
+    new_components = copy(components)
+    index = findchemical(new_components,selectcomp)
+    new_components[index] = Component(new_components[index],mol = mol)
+
+    return new_components
+
+end
+
+#Phase functions
 """
 $(SIGNATURES)
 This type is defined to contain all the most relevant properties of a phase, any number of variables can be initialized and defaults will be 0
@@ -422,6 +460,7 @@ $(TYPEDFIELDS)
 end
 
 
+#Broadcasting functions
 """
 $(TYPEDSIGNATURES)
 
@@ -431,59 +470,16 @@ function gibbs(phase)
     return phase.G
 end
 
-
 """
 $(TYPEDSIGNATURES)
 
-Returns the 'mol' of 'phase', useful for broadcasting
+Returns the 'mol' of a PetroBase struct that has a `mol` property such as 'Phase' or 'Component', useful for broadcasting
 """
-function mol(phase)
-    return phase.mol
+function mol(petroitem)
+    return petroitem.mol
 end
 
-"""
-$(SIGNATURES)
-This type is defined to contain all the most relevant properties of a petrological system, any number of variables can be initialized 
-and defaults will be 0 or empty arrays/strings. Units are selected based on convenience for petrological modelling.
-$(TYPEDFIELDS)
-"""
-@kwdef struct PetroSystem #A lot of these I can probably remove
-    "Composition of the system as defined by a 'Component' array"    
-    composition::Array{Component} = Array{Component}([])
-    "Phases within the system"
-    phases::Array{Phase} = Array{Phase}([])
-    "Concentration of trace elements in the system"
-    traceelements::Array{TraceElement} = Array{TraceElement}([])
-    "Total moles of all components in the system"#Is this actually useful?
-    mol::Float64 = 0
-    "Total volume of all phases in the system(J/bar [m^3/10^5])"
-    vol::Float64 = 0#In J/bar
-    "Total mass of the system(g)"
-    mass::Float64 = 0#In g
-    "Density of the system (kg/m^3)"
-    ρ::Float64 = 0#Density in kg/m^3
-    "Molar mass of the system (kg/m^3)"
-    molarmass::Float64 = 0
-    #Thermo properties
-    "Gibbs free energy (J/mol)"
-    G::Float64 = 0#J/mol
-    "Enthalpy (J/mol)"
-    H::Float64 = 0#J/mol
-    "Entropy (J/K·mol)"
-    S::Float64 = 0#In J/Kmol
-    "Heat capacity (J/K·mol)"
-    Cp::Float64 = 0#In J/Kmol
-    "Molar volume (J/bar·mol)"
-    Vmol::Float64 = 0#InJ/barmol
-    "Cp/Cv (heat capacity ratio)"
-    Cp_Cv::Float64 = 0#Cp/Cv = heat capacity ratio
-    "Thermal expansion coefficient(1/K)"
-    α::Float64 = 0 #Thermal expansion coeficiient in 1/K
-    "Compressibility (1/bar)"
-    β::Float64 = 0#Compressibility in 1/bar
-
-end
-
+#More complex calculation functions for Phase objects
 """
 $(TYPEDSIGNATURES)
 
@@ -567,5 +563,54 @@ function majorcation(phase, cat, ox, hydrox)
 
     return catcomponents
 end
+
+
+#PetroSystem functions
+"""
+$(SIGNATURES)
+This type is defined to contain all the most relevant properties of a petrological system, any number of variables can be initialized 
+and defaults will be 0 or empty arrays/strings. Units are selected based on convenience for petrological modelling.
+$(TYPEDFIELDS)
+"""
+@kwdef struct PetroSystem #A lot of these I can probably remove
+    "Composition of the system as defined by a 'Component' array"    
+    composition::Array{Component} = Array{Component}([])
+    "Phases within the system"
+    phases::Array{Phase} = Array{Phase}([])
+    "Concentration of trace elements in the system"
+    traceelements::Array{TraceElement} = Array{TraceElement}([])
+    "Total moles of all components in the system"#Is this actually useful?
+    mol::Float64 = 0
+    "Total volume of all phases in the system(J/bar [m^3/10^5])"
+    vol::Float64 = 0#In J/bar
+    "Total mass of the system(g)"
+    mass::Float64 = 0#In g
+    "Density of the system (kg/m^3)"
+    ρ::Float64 = 0#Density in kg/m^3
+    "Molar mass of the system (kg/m^3)"
+    molarmass::Float64 = 0
+    #Thermo properties
+    "Gibbs free energy (J/mol)"
+    G::Float64 = 0#J/mol
+    "Enthalpy (J/mol)"
+    H::Float64 = 0#J/mol
+    "Entropy (J/K·mol)"
+    S::Float64 = 0#In J/Kmol
+    "Heat capacity (J/K·mol)"
+    Cp::Float64 = 0#In J/Kmol
+    "Molar volume (J/bar·mol)"
+    Vmol::Float64 = 0#InJ/barmol
+    "Cp/Cv (heat capacity ratio)"
+    Cp_Cv::Float64 = 0#Cp/Cv = heat capacity ratio
+    "Thermal expansion coefficient(1/K)"
+    α::Float64 = 0 #Thermal expansion coeficiient in 1/K
+    "Compressibility (1/bar)"
+    β::Float64 = 0#Compressibility in 1/bar
+
+end
+
+
+
+
 
 end
