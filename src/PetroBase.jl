@@ -18,11 +18,13 @@ export
     sum_mass, 
     isunique,
     findchemical,
+    getchemical,
     gibbs,
     mol,
     sum_mols,
     majorcation,
-    change_list_component
+    change_list_component,
+    getphase
 
 using
     DocStringExtensions
@@ -151,7 +153,7 @@ $(TYPEDSIGNATURES)
 This is a simple boolean operator that returns true if two 'Chemical' variables have the same name and molar mass
 """
 function ≃(comp1::Chemical, comp2::Chemical)
-    if comp1.name == comp2.name && comp1.molarmass ≈ comp2.molarmass
+    if lowercase(comp1.name) == lowercase(comp2.name) && comp1.molarmass ≈ comp2.molarmass
         return true
     end
     
@@ -350,11 +352,11 @@ end
 $(TYPEDSIGNATURES)
 Calculates the total mols of an array of PetroBase structs that have a 'mol' parameter. This should work for 'Phase' or 'Component'
 """
-function sum_mols(components)
+function sum_mols(petroitems)
     mol = 0
 
-    for comp in components
-        mol += comp.mol
+    for petro in petroitems
+        mol += petro.mol
     end
 
     return mol
@@ -394,13 +396,21 @@ Best used with arrays of unique 'Chemical' variables.
 """
 function findchemical(chemicals, fchem)
     for i in 1:lastindex(chemicals)
-        if chemicals[i].name == fchem
+        if lowercase(chemicals[i].name) == lowercase(fchem)
             return i
         end
     end
     return 0
 end
 
+"""
+$(TYPEDSIGNATURES)
+Returns the element in the 'chemicals' array with the name of 'fchem'. Returns 0 if 'fChem' isnt present. 
+Best used with arrays of unique 'Chemical' variables. Will throw an error if fchem isnt in the array
+"""
+function getchemical(chemicals, fchem)
+    return chemicals[findchemical(chemicals,fchem)]
+end
 """
 $(TYPEDSIGNATURES)
 
@@ -478,6 +488,7 @@ Returns the 'mol' of a PetroBase struct that has a `mol` property such as 'Phase
 function mol(petroitem)
     return petroitem.mol
 end
+
 
 #More complex calculation functions for Phase objects
 """
@@ -570,6 +581,7 @@ end
 $(SIGNATURES)
 This type is defined to contain all the most relevant properties of a petrological system, any number of variables can be initialized 
 and defaults will be 0 or empty arrays/strings. Units are selected based on convenience for petrological modelling.
+Note that when calculating PetroSystem properties using JPerpleX, 
 $(TYPEDFIELDS)
 """
 @kwdef struct PetroSystem #A lot of these I can probably remove
@@ -610,7 +622,14 @@ $(TYPEDFIELDS)
 end
 
 
-
+function getphase(system, name)
+    for phase in system.phases
+        if contains(lowercase(phase.name),lowercase(name))
+            return phase
+        end
+    end
+    return Phase(name=name,composition=zero.(system.composition))
+end
 
 
 end

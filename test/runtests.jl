@@ -74,6 +74,8 @@ using Test
 
     system = PetroSystem(composition = compoList1, phases = [phase1], traceelements = teList1, mol = 3.0, G = -2403.2)
 
+    @test mol(getphase(system,"forsterite")) ≈ 3.0
+    @test mol(getphase(system, "ilmenite")) ≈ 0.0
 
     c1 = Component("FeO",71.850,1,1,2,mass=45.333)
     c2 = Component("TiO2",79.90,1,2,4,mass=52.7124)
