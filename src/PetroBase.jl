@@ -26,7 +26,8 @@ export
     majorcation,
     change_list_component,
     getphase,
-    get_volprop
+    get_volprop,
+    changename
 
 using
     DocStringExtensions
@@ -471,7 +472,10 @@ $(TYPEDFIELDS)
     β::Float64 = 0#Compressibility in 1/bar
 end
 
-
+function changename(phase, newname)
+    return Phase(newname, phase.composition, phase.traceelements, phase.mol, phase.vol, phase.mass, phase.ρ, phase.molarmass,
+            phase.G, phase.H, phase.S, phase.Cp, phase.Vmol, phase.Cp_Cv, phase.α, phase.β)
+end
 #Broadcasting functions
 """
 $(TYPEDSIGNATURES)

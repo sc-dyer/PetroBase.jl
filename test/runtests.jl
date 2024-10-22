@@ -82,6 +82,7 @@ using Test
     c3 = Component("MnO",70.937,1,1,2,mass=2.64039)
 
     ilm = Phase(name = "Ilmenite",composition = [c1,c2,c3], mol = 1.0,vol = 7.0)
+    
     ilmcat = majorcation(ilm,2,3,0)
     @test length(ilmcat) == 4
     @test round(concentration(ilmcat[findchemical(ilmcat,"Ti")]),sigdigits=3) ≈ 0.994
@@ -89,6 +90,8 @@ using Test
     @test round(concentration(ilmcat[findchemical(ilmcat,"Fe2+")]),sigdigits=3) ≈ 0.938
     @test round(concentration(ilmcat[findchemical(ilmcat,"Fe3+")]),sigdigits=2) ≈ 0.013
 
+    ilm2 = changename(ilm,"Ilm")
+    @test ilm2.name == "Ilm"
     system = PetroSystem(composition = compoList1, phases = [phase1,ilm], traceelements = teList1, mol = 3.0, G = -2403.2)
 
     @test get_volprop(system,"forsterite") ≈ 0.3
