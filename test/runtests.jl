@@ -68,24 +68,29 @@ using Test
     comprange = range(compstart,compend,length=10)
     @test concentration(comprange[4]) ≈ 4.0
 
-    phase1 = Phase(name = "Forsterite", composition = compoList1, traceelements = teList1, mol = 3.0, G = -2403.2)
+    phase1 = Phase(name = "Forsterite", composition = compoList1, traceelements = teList1, mol = 3.0, G = -2403.2, vol = 3.0)
     @test gibbs(phase1) ≈ -2403.2
     @test mol(phase1) ≈ 3
 
     system = PetroSystem(composition = compoList1, phases = [phase1], traceelements = teList1, mol = 3.0, G = -2403.2)
 
-    @test mol(getphase(system,"forsterite")) ≈ 3.0
-    @test mol(getphase(system, "ilmenite")) ≈ 0.0
+    @test mol(getphase(system,"Forsterite")[1]) ≈ 3.0
+    @test mol(getphase(system, "Ilmenite")[1]) ≈ 0.0
 
     c1 = Component("FeO",71.850,1,1,2,mass=45.333)
     c2 = Component("TiO2",79.90,1,2,4,mass=52.7124)
     c3 = Component("MnO",70.937,1,1,2,mass=2.64039)
 
-    ilm = Phase(name = "Ilmenite",composition = [c1,c2,c3], mol = 1.0)
+    ilm = Phase(name = "Ilmenite",composition = [c1,c2,c3], mol = 1.0,vol = 7.0)
     ilmcat = majorcation(ilm,2,3,0)
     @test length(ilmcat) == 4
     @test round(concentration(ilmcat[findchemical(ilmcat,"Ti")]),sigdigits=3) ≈ 0.994
     @test round(concentration(ilmcat[findchemical(ilmcat,"Mn")]),sigdigits=2) ≈ 0.056
     @test round(concentration(ilmcat[findchemical(ilmcat,"Fe2+")]),sigdigits=3) ≈ 0.938
     @test round(concentration(ilmcat[findchemical(ilmcat,"Fe3+")]),sigdigits=2) ≈ 0.013
+
+    system = PetroSystem(composition = compoList1, phases = [phase1,ilm], traceelements = teList1, mol = 3.0, G = -2403.2)
+
+    @test get_volprop(system,"forsterite") ≈ 0.3
+    @test get_volprop(system,"ilmenite") ≈ 0.7
 end

@@ -21,10 +21,12 @@ export
     getchemical,
     gibbs,
     mol,
+    vol,
     sum_mols,
     majorcation,
     change_list_component,
-    getphase
+    getphase,
+    get_volprop
 
 using
     DocStringExtensions
@@ -489,7 +491,14 @@ function mol(petroitem)
     return petroitem.mol
 end
 
+"""
+$(TYPEDSIGNATURES)
 
+Returns the 'vol' of a PetroBase struct that has a `mol` property such as 'Phase' or 'PetroSystem', useful for broadcasting
+"""
+function vol(petroitem)
+    return petroitem.vol
+end
 #More complex calculation functions for Phase objects
 """
 $(TYPEDSIGNATURES)
@@ -621,15 +630,39 @@ $(TYPEDFIELDS)
 
 end
 
+"""
+$(TYPEDSIGNATURES)
 
-function getphase(system, name)
-    for phase in system.phases
-        if contains(lowercase(phase.name),lowercase(name))
-            return phase
-        end
+Returns an array of phases in given 'system' with the 'name', returns a phase with zeros in 
+everything if the phase is not present.
+"""
+function getphase(system, phasename::String)
+    
+    phases = system.phases[isequal.(lowercase.(name.(system.phases)),lowercase(phasename))]
+    if length(phases) == 0
+        push!(phases, Phase(name=phasename,composition = zero.(system.composition)))
     end
-    return Phase(name=name,composition=zero.(system.composition))
+    return phases
 end
 
+function getphase(system, phasename::Regex)
+    
+    phases = system.phases[contains.(lowercase.(name.(system.phases)),lowercase(phasename))]
+    if length(phases) == 0
+        push!(phases, Phase(name=phasename,composition = zero.(system.composition)))
+    end
+    return phases
+end
 
+"""
+$(TYPEDSIGNATURES)
+
+Returns the the volume proportion of a phase in given 'system' with the 'name', 
+returns 0 if phase is not present.
+"""
+function get_volprop(system,phasename)
+
+    phases = getphase(system,phasename)
+    return sum(vol.(phases))/sum(vol.(system.phases))
+end
 end
