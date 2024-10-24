@@ -651,7 +651,7 @@ end
 
 function getphase(system, phasename::Regex)
     
-    phases = system.phases[contains.(lowercase.(name.(system.phases)),lowercase(phasename))]
+    phases = system.phases[contains.(lowercase.(name.(system.phases)),phasename)]
     if length(phases) == 0
         push!(phases, Phase(name=phasename,composition = zero.(system.composition)))
     end
