@@ -22,7 +22,10 @@ export
     gibbs,
     mol,
     vol,
+    mass,
     sum_mols,
+    molfrac,
+    massfrac,
     majorcation,
     change_list_component,
     getphase,
@@ -336,19 +339,21 @@ function Base.zero(val::Component)
     return Component(val,mol=0)
 end
 
-
+"""
+$(TYPEDSIGNATURES)
+Calculates the total mass of a 'Component' by returning the product of its 'molarmass' and 'mol'
+"""
+function mass(component)
+    return component.molarmass * component.mol
+end
 
 """
 $(TYPEDSIGNATURES)
-Calculates the molar mass of an array of 'Component' variables by adding up the product of the molar mass and mol of each 'Component' in the array.
+Calculates the total molar mass of an array of 'Component' variables by adding up the product of the molar mass and mol of each 'Component' in the array.
 Intent of use is calculating molar mass of a phase that is described using a 'Component' array
 """
 function sum_mass(components)
-    molarmass = 0
-    for comp in components
-        molarmass += comp.molarmass*comp.mol
-    end
-    return molarmass
+    return sum(mass.(components))
 end
 
 """
@@ -356,15 +361,26 @@ $(TYPEDSIGNATURES)
 Calculates the total mols of an array of PetroBase structs that have a 'mol' parameter. This should work for 'Phase' or 'Component'
 """
 function sum_mols(petroitems)
-    mol = 0
-
-    for petro in petroitems
-        mol += petro.mol
-    end
-
-    return mol
+    return sum(mol.(petroitems))
 end
 
+"""
+$(TYPEDSIGNATURES)
+Calculates the mol fraction of component with 'name' in the array 'components' 
+"""
+function molfrac(components,name)
+    comp = getchemical(components,name)
+    return mol(comp)/sum_mols(components)
+end
+
+"""
+$(TYPEDSIGNATURES)
+Calculates the mass fraction of component with 'name' in the array 'components' 
+"""
+function massfrac(components,name)
+    comp = getchemical(components,name)
+    return mass(comp)/sum_mass(components)
+end
 """
 $(TYPEDSIGNATURES)
 Checks if each cell in a 'Chemical' array is not repeated elsewhere in the array.
