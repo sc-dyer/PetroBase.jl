@@ -30,7 +30,8 @@ export
     change_list_component,
     getphase,
     get_volprop,
-    changename
+    changename,
+    getcompo
 
 using
     DocStringExtensions
@@ -369,8 +370,14 @@ $(TYPEDSIGNATURES)
 Calculates the mol fraction of component with 'name' in the array 'components' 
 """
 function molfrac(components,name)
-    comp = getchemical(components,name)
-    return mol(comp)/sum_mols(components)
+    chemindex = findchemical(components,name)
+    if chemindex == 0
+        return 0
+    else
+        comp = components[chemindex]
+   
+        return mol(comp)/sum_mols(components)
+    end
 end
 
 """
@@ -378,8 +385,16 @@ $(TYPEDSIGNATURES)
 Calculates the mass fraction of component with 'name' in the array 'components' 
 """
 function massfrac(components,name)
-    comp = getchemical(components,name)
-    return mass(comp)/sum_mass(components)
+    chemindex = findchemical(components,name)
+    if chemindex == 0
+        return 0
+    else
+        comp = components[chemindex]
+   
+        return mass(comp)/sum_mass(components)
+    end
+    
+    
 end
 """
 $(TYPEDSIGNATURES)
@@ -430,6 +445,8 @@ Best used with arrays of unique 'Chemical' variables. Will throw an error if fch
 function getchemical(chemicals, fchem)
     return chemicals[findchemical(chemicals,fchem)]
 end
+
+
 """
 $(TYPEDSIGNATURES)
 
@@ -684,5 +701,20 @@ function get_volprop(system,phasename)
 
     phases = getphase(system,phasename)
     return sum(vol.(phases))/sum(vol.(system.phases))
+end
+
+function get_volprop(system,phasename,excludes)
+    phases = getphase(system,phasename)
+    excludephases = getphase(system,excludes)
+
+    return sum(vol.(phases))/(sum(vol.(system.phases))-sum(vol.(excludephases)))
+end
+
+function getchemical(system::PetroSystem, fchem)
+    return getchemical(system.composition,fchem)
+end
+
+function getcompo(petroitem)
+    return petroitem.composition
 end
 end
