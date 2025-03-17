@@ -31,14 +31,20 @@ export
     getphase,
     get_volprop,
     changename,
-    getcompo
-
+    getcompo,
+    amphibolecation
+    ti_in_amphibole,
+    MOLAR_MASSES
 using
     DocStringExtensions
 # Write your package code here.
 
 const O_MASS = 15.999
 const H_MASS = 1.00784
+
+const MOLAR_MASSES = Dict([("SiO2",60.0840),("Na2O",61.9790),("Al2O3",101.9610),("K2O",94.1960),
+                            ("CaO",56.0770),("TiO2",79.8660), ("MgO",40.3040),("MnO",70.9370),("FeO",71.8440),
+                            ("O2",31.9990),("H2O",18.0150),("CO2",44.0100)])
 
 #Following are constructors of Chemical type objects
 """
@@ -541,6 +547,7 @@ end
 $(TYPEDSIGNATURES)
 
 Calculates the major cations of a phase given the expected number of cations, oxygens and hydroxides
+in atoms per formula unit
 """
 function majorcation(phase, cat, ox, hydrox)
     totalcharge = 2*ox-hydrox
@@ -622,6 +629,125 @@ function majorcation(phase, cat, ox, hydrox)
 end
 
 
+"""
+$(TYPEDSIGNATURES)
+
+Calculates the major cations of a phase given the expected number of cations, oxygens and hydroxides
+in atoms per formula unit
+"""
+function amphibolecation(phase, cat, ox, hydrox)
+    totalcharge = 2*ox-hydrox
+    catcomponents = Component[]
+    a_site = Component[]
+    b_site = Component[]
+    c_site = Component[]
+    t_site = Component[]
+    w_site = Component[]
+    for component in phase.composition
+        if component.ox > 0
+            cat_name = match(r"[^O|\d]*",component.name).match
+            if cat_name == "Fe"
+                cat_name = "Fe2+"
+            end
+            cat_mol = concentration(component) * component.cat
+            cat_molarmass = (component.molarmass - component.ox*O_MASS)/component.cat
+            cat_component = Component(cat_name,cat_molarmass,cat_mol,component.cat,0,component.catcharge)
+            push!(catcomponents,cat_component)
+        else
+            push!(catcomponents,component)
+        end
+    end
+
+    cat_mol_total = 0
+    for component in catcomponents
+        if component.name != "H" || component.name != "F" || component.name != "Cl"
+            cat_mol_total += concentration(component)
+        end
+    end
+
+    # cat_mol_total = sum_mols(catcomponents)
+    cat_charge_total = 0
+    for i in 1:lastindex(catcomponents)
+        # mol_norm = concentration(component)*cat/cat_mol_total
+        
+        catcomponents[i] = catcomponents[i] *(cat/cat_mol_total)
+        if catcomponents[i].name != "H" || catcomponents[i].name != "F" || catcomponents[i].name != "Cl"
+            cat_charge_total += concentration(catcomponents[i])*catcomponents[i].catcharge
+        end
+    end
+
+    charge_def = totalcharge-cat_charge_total
+    
+    fe_index = findchemical(catcomponents, "Fe2+")
+    if fe_index > 0
+        if charge_def > concentration(catcomponents[fe_index])
+            fe3_mol = concentration(catcomponents[fe_index])
+            push!(catcomponents,Component("Fe3+",catcomponents[fe_index].molarmass,fe3_mol,1,0,3))
+            popat!(catcomponents,fe_index)
+            
+        elseif charge_def >= 0 
+            fe3_mol = charge_def
+            push!(catcomponents,Component("Fe3+",catcomponents[fe_index].molarmass,fe3_mol,1,0,3))
+            catcomponents[fe_index] -= fe3_mol
+        end
+    end
+
+    if hydrox > 0
+        h_index = findchemical(catcomponents, "H")
+        if h_index == 0
+            push!(catcomponents, Component("H",H_MASS,0,1,0,1))
+            h_index = lastindex(catcomponents)
+        end
+        f_index = findchemical(catcomponents, "F")
+        cl_index = findchemical(catcomponents, "Cl")
+        h_total = hydrox
+
+        if f_index > 0
+            h_total -= concentration(catcomponents[f_index])
+        end
+        if cl_index > 0
+            h_total -= concentration(catcomponents[cl_index])
+        end
+
+        catcomponents[h_index] = Component(catcomponents[h_index],mol = h_total)
+   
+        
+            
+    end
+
+    return catcomponents
+end
+"""
+$(TYPEDSIGNATURES)
+Calculates the Ti in amphibole temperature of a given amphibole composition following Lioa et al 2021
+Temperature returned in degrees celsius.
+
+https://doi.org/10.2138/am-2020-7409
+
+"""
+function ti_in_amphibole(ti::Chemical)
+    if lowercase(ti.name) != "ti"
+        throw(ArgumentError("Must input a Ti value"))
+    end
+    return 2400/(1.52-log10(concentration(ti)))-273
+
+end
+
+function ti_in_amphibole(catcomponents)
+    ti_in_amphibole(getchemical(catcomponents,"Ti"))
+end
+
+function ti_in_amphibole(amphibole::Phase; calc_cation = false)
+    compo = amphibole.composition
+    if calc_cation == true
+        compo = majorcation(amphibole,15,22,2)
+    end
+    ti_in_amphibole(compo)
+end
+
+function ti_in_amphibole(ti::Number)
+    return 2400/(1.52-log10(ti))-273
+end
 #PetroSystem functions
 """
 $(SIGNATURES)
