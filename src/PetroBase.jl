@@ -32,7 +32,7 @@ export
     get_volprop,
     changename,
     getcompo,
-    amphibolecation
+    amphibolecation,
     ti_in_amphibole,
     MOLAR_MASSES
 using
