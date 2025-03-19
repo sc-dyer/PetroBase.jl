@@ -10,6 +10,7 @@ export
     Chemical, 
     Component, 
     TraceElement, 
+    PetroItem,
     Phase, 
     PetroSystem,
     ≃, 
@@ -34,7 +35,9 @@ export
     getcompo,
     amphibolecation,
     ti_in_amphibole,
-    MOLAR_MASSES
+    add_te!,
+    MOLAR_MASSES,
+    compo_frac
 using
     DocStringExtensions
 # Write your package code here.
@@ -44,7 +47,7 @@ const H_MASS = 1.00784
 
 const MOLAR_MASSES = Dict([("SiO2",60.0840),("Na2O",61.9790),("Al2O3",101.9610),("K2O",94.1960),
                             ("CaO",56.0770),("TiO2",79.8660), ("MgO",40.3040),("MnO",70.9370),("FeO",71.8440),
-                            ("O2",31.9990),("H2O",18.0150),("CO2",44.0100)])
+                            ("O2",31.9990),("H2O",18.0150),("CO2",44.0100),("ZrO2", 123.220)])
 
 #Following are constructors of Chemical type objects
 """
@@ -354,13 +357,15 @@ function mass(component)
     return component.molarmass * component.mol
 end
 
+
 """
 $(TYPEDSIGNATURES)
 Calculates the total molar mass of an array of 'Component' variables by adding up the product of the molar mass and mol of each 'Component' in the array.
-Intent of use is calculating molar mass of a phase that is described using a 'Component' array
+Intent of use is calculating molar mass of a phase that is described using a 'Component' array.
+Also returns total mass of a list of phases if that is what is inputted.
 """
-function sum_mass(components)
-    return sum(mass.(components))
+function sum_mass(petroitems)
+    return sum(mass.(petroitems))
 end
 
 """
@@ -399,9 +404,11 @@ function massfrac(components,name)
    
         return mass(comp)/sum_mass(components)
     end
-    
-    
 end
+
+
+
+
 """
 $(TYPEDSIGNATURES)
 Checks if each cell in a 'Chemical' array is not repeated elsewhere in the array.
@@ -445,7 +452,7 @@ end
 
 """
 $(TYPEDSIGNATURES)
-Returns the element in the 'chemicals' array with the name of 'fchem'. Returns 0 if 'fChem' isnt present. 
+Returns the element in the 'chemicals' array with the name of 'fchem'.
 Best used with arrays of unique 'Chemical' variables. Will throw an error if fchem isnt in the array
 """
 function getchemical(chemicals, fchem)
@@ -468,6 +475,8 @@ function change_list_component(components,mol,selectcomp)
 
 end
 
+
+abstract type PetroItem end
 #Phase functions
 """
 $(SIGNATURES)
@@ -475,7 +484,7 @@ This type is defined to contain all the most relevant properties of a phase, any
 or empty arrays/strings. Units are selected based on convenience for petrological modelling.
 $(TYPEDFIELDS)
 """
-@kwdef struct Phase
+@kwdef struct Phase <: PetroItem
     "Name of the phase"
     name::String
     "Composition of the phase as defined by a 'Component' array"
@@ -532,6 +541,14 @@ Returns the 'mol' of a PetroBase struct that has a `mol` property such as 'Phase
 """
 function mol(petroitem)
     return petroitem.mol
+end
+
+"""
+$(TYPEDSIGNATURES)
+Returns the mass of a 'Phase'
+"""
+function mass(phase::Phase)
+    return phase.mass
 end
 
 """
@@ -756,7 +773,7 @@ and defaults will be 0 or empty arrays/strings. Units are selected based on conv
 Note that when calculating PetroSystem properties using JPerpleX, 
 $(TYPEDFIELDS)
 """
-@kwdef struct PetroSystem #A lot of these I can probably remove
+@kwdef struct PetroSystem  <: PetroItem 
     "Composition of the system as defined by a 'Component' array"    
     composition::Array{Component} = Array{Component}([])
     "Phases within the system"
@@ -836,11 +853,74 @@ function get_volprop(system,phasename,excludes)
     return sum(vol.(phases))/(sum(vol.(system.phases))-sum(vol.(excludephases)))
 end
 
-function getchemical(system::PetroSystem, fchem)
-    return getchemical(system.composition,fchem)
+"""
+$(TYPEDSIGNATURES)
+Calculates the mass fraction of a 'Phase' in a given 'PetroSystem'
+"""
+function massfrac(phase::Phase,system::PetroSystem)
+    return phase.mass/system.mass
+end
+
+"""
+$(TYPEDSIGNATURES)
+Calculates the mass fraction of a 'Phase' in a given list of phases
+"""
+function massfrac(phase::Phase,phaselist)
+    return phase.mass/sum_mass(phaselist)
+end
+
+function getchemical(petit::PetroItem, fchem)
+    try
+        return getchemical(petit.composition,fchem)
+    catch
+        return getchemical(petit.traceelements,fchem)
+    end
+end
+
+function getchemical(chemicals, te::TraceElement)
+    chemindex = findchemical(chemicals,te)
+    if chemindex == 0
+        return TraceElement(te,0.0)
+    else
+        return chemicals[chemindex]
+    end
+end
+
+function getchemical(chemicals,comp::Component)
+    chemindex = findchemical(chemicals,comp)
+    if chemindex == 0
+        return Component(comp,mol=0.0)
+    else
+        return chemicals[chemindex]
+    end
+end
+
+function getchemical(petit::PetroItem, te::TraceElement)
+    return getchemical(petit.traceelements,te)
+end
+
+function getchemical(petit::PetroItem, comp::Component)
+    return getchemical(petit.composition,comp)
 end
 
 function getcompo(petroitem)
     return petroitem.composition
 end
+
+function add_te!(petroitem,tracelement)
+    push!(petroitem.traceelements,tracelement)
+end
+
+"""
+$(TYPEDSIGNATURES)
+Provides the mass fraction of a given chemical 'chem' contained within a given 'phase' relative to a given 'system'
+"""
+function compo_frac(phase,system,chem)
+    
+   chemfrac =  massfrac(phase,system)*concentration(getchemical(phase,chem))
+
+   return chemfrac/concentration(getchemical(system,chem))
+end
+
+
 end
